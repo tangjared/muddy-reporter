@@ -66,6 +66,7 @@ class Report(BaseModel):
     financial_table: list[dict] = Field(default_factory=list)
     forensic_scores: dict = Field(default_factory=dict)
     risk_grade: dict = Field(default_factory=dict)
+    fraud_classifier: dict = Field(default_factory=dict)
     provider_info: dict = Field(default_factory=dict)
 
 

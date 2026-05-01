@@ -1,12 +1,21 @@
-"""LLM gateway with Gemini-first, OpenAI-fallback, heuristic-last strategy.
+"""LLM gateway: routes to whichever provider is configured.
 
 Selection rules (auto):
-1. If GEMINI_API_KEY (or GOOGLE_API_KEY) is set → use Google Gemini
-   (free tier via AI Studio; large context window; native JSON mode).
-2. Else if OPENAI_API_KEY is set → use OpenAI.
-3. Else → keyword-based heuristic so the prototype still runs end-to-end.
+1. If LLM_PROVIDER is set (deepseek | gemini | openai | ensemble | heuristic) → use that.
+2. Else if DEEPSEEK_API_KEY is set → use DeepSeek (V4 Pro by default).
+3. Else if GEMINI_API_KEY is set → use Gemini.
+4. Else if OPENAI_API_KEY is set → use OpenAI.
+5. Else → keyword-based heuristic so the prototype still runs end-to-end.
 
-You can force a provider with LLM_PROVIDER=gemini|openai|heuristic.
+Provider-specific overrides:
+- DEEPSEEK_MODEL  (default: deepseek-v4-pro)
+- GEMINI_MODEL    (default: gemini-2.5-flash)
+- OPENAI_MODEL    (default: gpt-4.1-mini)
+- DEEPSEEK_REASONING_EFFORT  (default: high; options: low | high | max | disabled)
+
+The chat_json() function additionally exposes a `prefer` argument so callers
+that need a specific model (e.g., the few-shot fraud classifier wants V4 Pro
+specifically for its 1M context + reasoning) can override the default routing.
 """
 
 from __future__ import annotations
@@ -19,8 +28,10 @@ from typing import Any
 
 def _provider() -> str:
     forced = (os.getenv("LLM_PROVIDER") or "").strip().lower()
-    if forced in {"gemini", "openai", "heuristic"}:
+    if forced in {"deepseek", "gemini", "openai", "ensemble", "heuristic"}:
         return forced
+    if os.getenv("DEEPSEEK_API_KEY"):
+        return "deepseek"
     if os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_API_KEY"):
         return "gemini"
     if os.getenv("OPENAI_API_KEY"):
@@ -28,32 +39,68 @@ def _provider() -> str:
     return "heuristic"
 
 
-def chat_json(*, system: str, user: str, schema_hint: str, temperature: float = 0.2) -> dict[str, Any]:
+def _call_provider(provider: str, *, system: str, user: str, schema_hint: str,
+                   temperature: float) -> dict[str, Any]:
+    """Single provider call (no fallback; raises on failure)."""
+    if provider == "deepseek":
+        return _deepseek_json(system=system, user=user, schema_hint=schema_hint, temperature=temperature)
+    if provider == "gemini":
+        return _gemini_json(system=system, user=user, schema_hint=schema_hint, temperature=temperature)
+    if provider == "openai":
+        return _openai_json(system=system, user=user, schema_hint=schema_hint, temperature=temperature)
+    raise ValueError(f"Unknown provider: {provider}")
+
+
+def chat_json(
+    *,
+    system: str,
+    user: str,
+    schema_hint: str,
+    temperature: float = 0.2,
+    prefer: str | None = None,
+) -> dict[str, Any]:
     """Return a JSON object from the configured LLM.
 
-    All providers are wrapped so callers always get a plain dict. Failures
-    degrade gracefully to the heuristic so the pipeline never crashes.
+    `prefer` lets a caller request a specific provider regardless of the
+    LLM_PROVIDER routing — used by the fraud classifier to specifically
+    target DeepSeek V4 Pro for its long-context reasoning advantage.
+    Falls back to the auto-selected provider if the preferred one isn't
+    configured.
     """
-    provider = _provider()
+    auto_p = _provider()
+    chosen = prefer if (prefer and _has_key_for(prefer)) else auto_p
+
+    if chosen == "ensemble":
+        return _ensemble_json(system=system, user=user, schema_hint=schema_hint, temperature=temperature)
+
     try:
-        if provider == "gemini":
-            return _gemini_json(system=system, user=user, schema_hint=schema_hint, temperature=temperature)
-        if provider == "openai":
-            return _openai_json(system=system, user=user, schema_hint=schema_hint, temperature=temperature)
+        if chosen != "heuristic":
+            return _call_provider(chosen, system=system, user=user,
+                                  schema_hint=schema_hint, temperature=temperature)
     except Exception as e:
-        # Soft-fail to heuristic so the report still gets produced.
         return _heuristic_json(user=user, schema_hint=schema_hint, error=str(e))
     return _heuristic_json(user=user, schema_hint=schema_hint)
+
+
+def _has_key_for(provider: str) -> bool:
+    if provider == "deepseek": return bool(os.getenv("DEEPSEEK_API_KEY"))
+    if provider == "gemini":   return bool(os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_API_KEY"))
+    if provider == "openai":   return bool(os.getenv("OPENAI_API_KEY"))
+    return provider in {"heuristic", "ensemble"}
 
 
 def provider_info() -> dict[str, str]:
     """Expose what's actually wired up (for the UI status badge)."""
     p = _provider()
+    if p == "deepseek":
+        return {"provider": "deepseek", "model": os.getenv("DEEPSEEK_MODEL") or "deepseek-v4-pro"}
     if p == "gemini":
-        # Default to flash (free tier compatible). Pro requires a paid plan as of 2025.
         return {"provider": "gemini", "model": os.getenv("GEMINI_MODEL") or "gemini-2.5-flash"}
     if p == "openai":
         return {"provider": "openai", "model": os.getenv("OPENAI_MODEL") or "gpt-4.1-mini"}
+    if p == "ensemble":
+        members = [m for m in ("deepseek", "gemini", "openai") if _has_key_for(m)]
+        return {"provider": "ensemble", "model": "+".join(members) or "n/a"}
     return {"provider": "heuristic", "model": "keyword-fallback"}
 
 
@@ -95,7 +142,7 @@ def _gemini_json(*, system: str, user: str, schema_hint: str, temperature: float
 
 
 # ---------------------------------------------------------------------------
-# OpenAI fallback
+# OpenAI
 # ---------------------------------------------------------------------------
 
 
@@ -121,6 +168,131 @@ def _openai_json(*, system: str, user: str, schema_hint: str, temperature: float
     )
     text = (resp.choices[0].message.content or "").strip()
     return _safe_load_json(text)
+
+
+# ---------------------------------------------------------------------------
+# DeepSeek (V4 Pro / V4 Flash) — uses OpenAI-compatible API
+# ---------------------------------------------------------------------------
+
+
+def _deepseek_json(*, system: str, user: str, schema_hint: str, temperature: float) -> dict[str, Any]:
+    """Call DeepSeek via its OpenAI-compatible endpoint.
+
+    Released April 24 2026. 1M context, 1.6T MoE (49B active), promotional
+    pricing $0.435/M input + $0.87/M output through May 31. Supports a
+    `reasoning_effort` knob for chain-of-thought depth.
+    """
+    from openai import OpenAI
+
+    client = OpenAI(
+        api_key=os.getenv("DEEPSEEK_API_KEY"),
+        base_url=os.getenv("DEEPSEEK_BASE_URL") or "https://api.deepseek.com",
+    )
+    model = os.getenv("DEEPSEEK_MODEL") or "deepseek-v4-pro"
+    effort = (os.getenv("DEEPSEEK_REASONING_EFFORT") or "high").strip().lower()
+
+    prompt = (
+        f"{user}\n\n"
+        "Return ONLY valid JSON.\n"
+        f"JSON schema (informal):\n{schema_hint}\n"
+    )
+
+    extra: dict[str, Any] = {}
+    if effort in {"low", "high", "max"}:
+        # Only V4 supports this; older deepseek-chat ignores unknown params gracefully.
+        extra["reasoning_effort"] = effort
+
+    resp = client.chat.completions.create(
+        model=model,
+        temperature=temperature,
+        response_format={"type": "json_object"},
+        messages=[
+            {"role": "system", "content": system},
+            {"role": "user", "content": prompt},
+        ],
+        **extra,
+    )
+    text = (resp.choices[0].message.content or "").strip()
+    return _safe_load_json(text)
+
+
+# ---------------------------------------------------------------------------
+# Multi-LLM Ensemble — runs the same prompt through all configured providers
+# in parallel, then merges findings with a "voted_by" provenance trail.
+# ---------------------------------------------------------------------------
+
+
+def _ensemble_json(*, system: str, user: str, schema_hint: str, temperature: float) -> dict[str, Any]:
+    import concurrent.futures
+
+    members = [m for m in ("deepseek", "gemini", "openai") if _has_key_for(m)]
+    if not members:
+        return _heuristic_json(user=user, schema_hint=schema_hint)
+    if len(members) == 1:
+        # Only one configured — no real ensemble, just call it.
+        return _call_provider(members[0], system=system, user=user,
+                              schema_hint=schema_hint, temperature=temperature)
+
+    results: dict[str, dict[str, Any]] = {}
+    with concurrent.futures.ThreadPoolExecutor(max_workers=len(members)) as pool:
+        futures = {
+            pool.submit(_call_provider, m, system=system, user=user,
+                        schema_hint=schema_hint, temperature=temperature): m
+            for m in members
+        }
+        for fut in concurrent.futures.as_completed(futures):
+            m = futures[fut]
+            try:
+                results[m] = fut.result()
+            except Exception as e:
+                results[m] = {"_error": str(e)}
+
+    # Merge findings: dedupe by (lowercase first 80 chars of title), track which
+    # providers produced each. A "consensus" finding is one voted by ≥2 models.
+    return _merge_ensemble_findings(results, schema_hint=schema_hint)
+
+
+def _merge_ensemble_findings(results: dict[str, dict[str, Any]], *, schema_hint: str) -> dict[str, Any]:
+    is_findings_schema = '"findings"' in schema_hint and '"core_thesis"' not in schema_hint
+
+    # For non-findings prompts (synthesis, classifier), just take the first
+    # successful result; ensemble across full-report drafts doesn't compose well.
+    if not is_findings_schema:
+        for m in ("deepseek", "openai", "gemini"):
+            d = results.get(m, {})
+            if d and "_error" not in d:
+                d.setdefault("_provider", m)
+                return d
+        return _heuristic_json(user="", schema_hint=schema_hint)
+
+    bucket: dict[str, dict[str, Any]] = {}
+    for m, payload in results.items():
+        if "_error" in payload:
+            continue
+        for f in payload.get("findings", []):
+            title = (f.get("title") or "").strip().lower()[:80]
+            if not title:
+                continue
+            if title not in bucket:
+                copy = {**f, "voted_by": [m]}
+                bucket[title] = copy
+            else:
+                if m not in bucket[title]["voted_by"]:
+                    bucket[title]["voted_by"].append(m)
+
+    findings = []
+    for f in bucket.values():
+        votes = len(f.get("voted_by", []))
+        # Boost confidence on consensus, demote singletons to "question".
+        if votes >= 2:
+            if f.get("label") in {"fact", "inference"} and f.get("confidence") in {"low"}:
+                f["confidence"] = "medium"
+        else:
+            if f.get("label") in {"fact", "inference"}:
+                f["label"] = "question"
+        findings.append(f)
+
+    return {"findings": findings}
 
 
 # ---------------------------------------------------------------------------

@@ -128,12 +128,15 @@ def build_synthesis_user_prompt(*, ticker: str, company_name: str | None,
     fin_block = ""
     if financial_brief:
         fin_block = (
-            "\nQUANTITATIVE & FORENSIC CONTEXT (deterministic, computed from XBRL):\n"
+            "\nQUANTITATIVE & FORENSIC CONTEXT (deterministic + few-shot classifier):\n"
             f"{financial_brief}\n"
             "Treat the anomalies and forensic scores as already-verified numerical facts. "
             "If Beneish M-Score > -1.78, flag the manipulation signal in your thesis. "
             "If Piotroski F < 4, mention financial weakness. "
-            "If Altman Z is in the distress zone, mention solvency risk.\n"
+            "If Altman Z is in the distress zone, mention solvency risk. "
+            "If `ml_classifier_verdict` is present and the company is `similar_to` a known fraud "
+            "case (Enron, Wirecard, Luckin, Nikola, WorldCom), explicitly draw the parallel in the "
+            "core thesis — but frame it as a pattern similarity, NOT an accusation.\n"
         )
     return f"""\
 Ticker: {ticker}

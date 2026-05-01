@@ -17,6 +17,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from .financials import build_financial_snapshot, compute_risk_grade, snapshot_to_brief
+from .fraud_classifier import classify_fraud_likelihood
 from .llm import chat_json, provider_info
 from .models import Citation, Finding, PipelineResult, Report
 from .prompts import (
@@ -237,17 +238,55 @@ def _build_report(
         for s in sources
     ]
 
+    # 1. Composite risk grade (deterministic, no LLM).
+    forensic_obj = (fin_snapshot.forensic_scores if fin_snapshot is not None else None)
+    anomaly_objs = (fin_snapshot.anomalies if fin_snapshot is not None else [])
+    risk = compute_risk_grade(
+        anomalies=anomaly_objs,
+        red_flags=findings,
+        forensic=forensic_obj,
+    )
+    risk_dict = {"score": risk.score, "grade": risk.grade, "breakdown": risk.breakdown}
+
+    # 2. Few-shot in-context fraud classifier (uses DeepSeek V4 Pro by default).
+    #    Runs BEFORE synthesis so the synthesis LLM can reference its verdict.
+    classifier_result: dict = {}
+    try:
+        classifier_result = classify_fraud_likelihood(
+            ticker=ticker,
+            company_name=company_name,
+            financial_brief=financial_brief,
+            llm_findings=findings,
+            risk_grade=risk_dict,
+        )
+    except Exception as e:
+        classifier_result = {
+            "fraud_probability": 0.5,
+            "verdict": "watch",
+            "confidence": "low",
+            "reasoning": f"Classifier disabled / errored: {e}",
+            "similar_to": [],
+            "differentiators": "",
+            "key_red_flags": [],
+            "mitigating_factors": [],
+        }
+
+    # 3. Synthesis — combine financial brief + classifier verdict into prompt.
     fin_brief_str = None
     if financial_brief:
-        fin_brief_str = json.dumps(
-            {
-                "entity": financial_brief.get("entity"),
-                "anomalies": financial_brief.get("anomalies", []),
-                "forensic_scores": financial_brief.get("forensic_scores"),
-            },
-            indent=2,
-            default=str,
-        )
+        payload_fin = {
+            "entity": financial_brief.get("entity"),
+            "anomalies": financial_brief.get("anomalies", []),
+            "forensic_scores": financial_brief.get("forensic_scores"),
+        }
+        if classifier_result and classifier_result.get("fraud_probability") is not None:
+            payload_fin["ml_classifier_verdict"] = {
+                "probability": classifier_result.get("fraud_probability"),
+                "verdict": classifier_result.get("verdict"),
+                "similar_to": classifier_result.get("similar_to"),
+                "key_red_flags": classifier_result.get("key_red_flags"),
+            }
+        fin_brief_str = json.dumps(payload_fin, indent=2, default=str)
 
     user = build_synthesis_user_prompt(
         ticker=ticker,
@@ -265,17 +304,6 @@ def _build_report(
     )
 
     now = datetime.now(timezone.utc).isoformat()
-
-    # Composite risk grade — combines deterministic anomalies + LLM findings +
-    # academic forensic scores into a single A-F letter.
-    forensic_obj = (fin_snapshot.forensic_scores if fin_snapshot is not None else None)
-    anomaly_objs = (fin_snapshot.anomalies if fin_snapshot is not None else [])
-    risk = compute_risk_grade(
-        anomalies=anomaly_objs,
-        red_flags=findings,
-        forensic=forensic_obj,
-    )
-    risk_dict = {"score": risk.score, "grade": risk.grade, "breakdown": risk.breakdown}
 
     return Report(
         ticker=ticker,
@@ -306,6 +334,7 @@ def _build_report(
         financial_table=(financial_brief or {}).get("annual_table", []),
         forensic_scores=(financial_brief or {}).get("forensic_scores") or {},
         risk_grade=risk_dict,
+        fraud_classifier=classifier_result,
         provider_info=provider_info(),
     )
 
