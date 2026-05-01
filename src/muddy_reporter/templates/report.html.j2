@@ -1,0 +1,320 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{{ report.ticker }} — Investigative Note (Prototype)</title>
+    <style>
+      :root {
+        --bg: #0b0f14; --card: #111826; --text: #e6edf3; --muted: #9fb0c0;
+        --danger: #ff6b6b; --warn: #ffd166; --ok: #7bd389; --info: #7cc4ff;
+        --violet: #c79dff;
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0; background: var(--bg); color: var(--text);
+        font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial;
+        line-height: 1.55;
+      }
+      a { color: var(--info); text-decoration: none; }
+      a:hover { text-decoration: underline; }
+
+      .container { max-width: 1100px; margin: 0 auto; padding: 28px 18px 60px; }
+
+      .hero {
+        background: linear-gradient(135deg, rgba(255,107,107,.20), rgba(124,196,255,.12));
+        border: 1px solid rgba(255,255,255,.08);
+        border-radius: 16px; padding: 22px 22px;
+      }
+      h1 { margin: 0 0 6px; font-size: 28px; letter-spacing: -0.01em; }
+      .sub { color: var(--muted); font-size: 13px; }
+      .kpi { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+
+      .grid { display: grid; grid-template-columns: 1fr; gap: 14px; margin-top: 14px; }
+      @media (min-width: 900px) { .grid { grid-template-columns: 1.1fr .9fr; } }
+
+      .card {
+        background: var(--card); border: 1px solid rgba(255,255,255,.08);
+        border-radius: 14px; padding: 18px;
+      }
+      h2 { margin: 0 0 10px; font-size: 18px; letter-spacing: -0.005em; }
+      h3 { margin: 14px 0 8px; font-size: 14px; color: #d7e2ee; text-transform: uppercase; letter-spacing: .04em; }
+
+      .pill {
+        display: inline-block; padding: 2px 9px; border-radius: 999px;
+        font-size: 12px; font-weight: 500;
+        border: 1px solid rgba(255,255,255,.15); color: var(--muted);
+        margin-right: 4px; vertical-align: middle;
+      }
+      .pill.fact { color: var(--ok); border-color: rgba(123,211,137,.45); background: rgba(123,211,137,.08); }
+      .pill.inference { color: var(--info); border-color: rgba(124,196,255,.45); background: rgba(124,196,255,.08); }
+      .pill.question { color: var(--warn); border-color: rgba(255,209,102,.45); background: rgba(255,209,102,.08); }
+      .pill.speculation { color: var(--danger); border-color: rgba(255,107,107,.45); background: rgba(255,107,107,.08); }
+      .pill.high { color: var(--danger); border-color: rgba(255,107,107,.45); background: rgba(255,107,107,.08); }
+      .pill.medium { color: var(--warn); border-color: rgba(255,209,102,.45); background: rgba(255,209,102,.08); }
+      .pill.low { color: var(--info); border-color: rgba(124,196,255,.45); background: rgba(124,196,255,.08); }
+
+      .muted { color: var(--muted); }
+      ul { margin: 6px 0 0 18px; }
+      .hr { height: 1px; background: rgba(255,255,255,.08); margin: 14px 0; }
+
+      .finding { padding: 12px 0; border-bottom: 1px dashed rgba(255,255,255,.08); }
+      .finding:last-child { border-bottom: none; }
+      .cite { margin-top: 10px; padding: 10px; border-radius: 10px;
+              background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.06); }
+      .quote {
+        white-space: pre-wrap; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+        font-size: 12.5px; color: #d7e2ee; border-left: 3px solid rgba(124,196,255,.5);
+        padding: 6px 10px; margin-top: 6px;
+      }
+      .footer { margin-top: 18px; color: var(--muted); font-size: 12px; }
+
+      table { width: 100%; border-collapse: collapse; font-size: 12.5px; margin-top: 8px; }
+      th, td { padding: 6px 8px; text-align: right; border-bottom: 1px solid rgba(255,255,255,.06); }
+      th:first-child, td:first-child { text-align: left; }
+      th { color: var(--muted); font-weight: 500; }
+
+      .anomaly { padding: 10px 12px; border-radius: 10px; margin-bottom: 10px;
+                 border: 1px solid rgba(255,255,255,.08); background: rgba(255,255,255,.02); }
+      .anomaly h4 { margin: 0 0 4px; font-size: 14px; }
+
+      .toolbar {
+        position: sticky; top: 8px; display: flex; justify-content: flex-end;
+        gap: 8px; z-index: 10; margin-bottom: 8px;
+      }
+      .btn {
+        background: rgba(255,255,255,.08); color: var(--text); border: 1px solid rgba(255,255,255,.15);
+        padding: 6px 12px; border-radius: 8px; font-size: 13px; cursor: pointer;
+      }
+      .btn:hover { background: rgba(255,255,255,.14); }
+
+      @media print {
+        body { background: white; color: black; }
+        .toolbar { display: none; }
+        .card, .hero { background: white; border-color: #ddd; box-shadow: none; }
+        a { color: #0066cc; }
+        .pill { border-color: #ccc; color: #555; background: #f6f6f6 !important; }
+        .quote { color: #333; border-color: #888; }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div class="toolbar">
+        <button class="btn" onclick="window.print()">🖨️ Print / Save as PDF</button>
+      </div>
+
+      <div class="hero">
+        <h1>{{ report.ticker }} — Investigative Note (Prototype)</h1>
+        <div class="sub">
+          {% if report.company_name %}{{ report.company_name }} · {% endif %}
+          Generated {{ report.generated_at_iso }} ·
+          Source: SEC EDGAR filings + XBRL · LLM:
+          {{ report.provider_info.provider if report.provider_info else "n/a" }}
+          ({{ report.provider_info.model if report.provider_info else "n/a" }})
+          · <strong>Not investment advice — requires human verification.</strong>
+        </div>
+        <div class="kpi">
+          <span class="pill">Filings: {{ sources | length }}</span>
+          <span class="pill">Red flags: {{ report.red_flags | length }}</span>
+          <span class="pill">Open questions: {{ report.open_questions | length }}</span>
+          {% if report.financial_anomalies %}
+            <span class="pill medium">Quant anomalies: {{ report.financial_anomalies | length }}</span>
+          {% endif %}
+        </div>
+      </div>
+
+      <div class="grid">
+        <div class="card">
+          <h2>Company snapshot</h2>
+          <div><strong>Business</strong>: <span class="muted">{{ report.snapshot.business_description }}</span></div>
+          <div><strong>Where it operates</strong>: <span class="muted">{{ report.snapshot.where_it_operates }}</span></div>
+          <div><strong>Revenue model / segments</strong>: <span class="muted">{{ report.snapshot.segments_or_revenue_model }}</span></div>
+          <div><strong>Recent corporate actions</strong>: <span class="muted">{{ report.snapshot.recent_corporate_actions }}</span></div>
+
+          <div class="hr"></div>
+          <h2>Why this company merits scrutiny</h2>
+          <div class="muted">{{ report.core_thesis }}</div>
+
+          {% if report.financial_anomalies %}
+            <div class="hr"></div>
+            <h2>Quantitative anomalies (from XBRL)</h2>
+            {% for a in report.financial_anomalies %}
+              <div class="anomaly">
+                <h4>{{ a.title }}</h4>
+                <span class="pill {{ a.severity }}">{{ a.severity }}</span>
+                <span class="pill">{{ a.category }}</span>
+                <span class="pill">{{ a.metric }}</span>
+                <div class="muted" style="margin-top:6px">{{ a.description }}</div>
+              </div>
+            {% endfor %}
+          {% endif %}
+
+          <div class="hr"></div>
+          <h2>Top red flags (skeptical lens)</h2>
+          {% for f in report.red_flags %}
+            <div class="finding">
+              <div>
+                <strong>{{ loop.index }}. {{ f.title }}</strong>
+                <span class="pill {{ f.label }}">{{ f.label }}</span>
+                <span class="pill {{ f.confidence }}">confidence: {{ f.confidence }}</span>
+                <span class="pill">{{ f.category }}</span>
+              </div>
+              <div class="muted" style="margin-top: 6px;"><strong>Observation</strong>: {{ f.claim_or_observation }}</div>
+              <div class="muted" style="margin-top: 6px;"><strong>Why it matters</strong>: {{ f.why_it_matters }}</div>
+
+              {% if f.counterpoints_or_alt_explanations and f.counterpoints_or_alt_explanations|length > 0 %}
+                <div style="margin-top: 8px;">
+                  <strong>Counterpoints / alternative explanations</strong>
+                  <ul>
+                    {% for c in f.counterpoints_or_alt_explanations %}
+                      <li class="muted">{{ c }}</li>
+                    {% endfor %}
+                  </ul>
+                </div>
+              {% endif %}
+
+              {% if f.open_questions and f.open_questions|length > 0 %}
+                <div style="margin-top: 8px;">
+                  <strong>Open questions</strong>
+                  <ul>
+                    {% for q in f.open_questions %}
+                      <li class="muted">{{ q }}</li>
+                    {% endfor %}
+                  </ul>
+                </div>
+              {% endif %}
+
+              {% if f.citations and f.citations|length > 0 %}
+                <div class="cite">
+                  <strong>Citations</strong>
+                  {% for ci in f.citations %}
+                    <div style="margin-top: 8px;">
+                      <div class="muted">
+                        <a href="{{ ci.url }}" target="_blank" rel="noreferrer">{{ ci.doc_id }}</a>
+                      </div>
+                      <div class="quote">{{ ci.excerpt }}</div>
+                    </div>
+                  {% endfor %}
+                </div>
+              {% else %}
+                <div class="cite">
+                  <strong>Citations</strong>
+                  <div class="muted">No direct citations attached — treat as low-confidence pending verification.</div>
+                </div>
+              {% endif %}
+            </div>
+          {% endfor %}
+        </div>
+
+        <div class="card">
+          <h2>Management claims vs counterpoints</h2>
+          {% if report.management_claims_vs_counterpoints and report.management_claims_vs_counterpoints|length > 0 %}
+            {% for row in report.management_claims_vs_counterpoints %}
+              <div style="margin-bottom: 14px;">
+                <div><strong>Claim</strong>: <span class="muted">{{ row.claim }}</span></div>
+                {% if row.source_excerpt %}
+                  <div class="quote" style="margin-top:6px">{{ row.source_excerpt }}</div>
+                {% endif %}
+                <div style="margin-top: 6px;"><strong>Counterpoint</strong>: <span class="muted">{{ row.counterpoint }}</span></div>
+                <div class="muted" style="margin-top: 6px;">
+                  <span class="pill {{ row.confidence }}">confidence: {{ row.confidence }}</span>
+                </div>
+              </div>
+            {% endfor %}
+          {% else %}
+            <div class="muted">No extracted claim/counterpoint pairs.</div>
+          {% endif %}
+
+          <div class="hr"></div>
+          <h2>Concerns by category</h2>
+          {% for cat, items in report.concerns_by_category.items() %}
+            <h3>{{ cat | replace('_', ' ') }}</h3>
+            {% if items and items|length > 0 %}
+              <ul>
+                {% for it in items %}
+                  <li class="muted">{{ it }}</li>
+                {% endfor %}
+              </ul>
+            {% else %}
+              <div class="muted">No items.</div>
+            {% endif %}
+          {% endfor %}
+
+          <div class="hr"></div>
+          <h2>Open questions for management</h2>
+          {% if report.open_questions and report.open_questions|length > 0 %}
+            <ul>
+              {% for q in report.open_questions %}
+                <li class="muted">{{ q }}</li>
+              {% endfor %}
+            </ul>
+          {% else %}
+            <div class="muted">None extracted.</div>
+          {% endif %}
+
+          {% if report.financial_table %}
+            <div class="hr"></div>
+            <h2>Annual financials (XBRL)</h2>
+            <table>
+              <thead>
+                <tr>
+                  <th>Year</th>
+                  <th>Revenue</th>
+                  <th>Net income</th>
+                  <th>CFO</th>
+                  <th>AR</th>
+                  <th>Inventory</th>
+                  <th>Goodwill</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for row in report.financial_table %}
+                  {% macro fnum(v) -%}
+                    {% if v is none or v is undefined %}—{% else %}{{ "{:,.0f}".format(v) }}{% endif %}
+                  {%- endmacro %}
+                  <tr>
+                    <td>{{ row.year }}</td>
+                    <td>{{ fnum(row.get('revenue')) }}</td>
+                    <td>{{ fnum(row.get('net_income')) }}</td>
+                    <td>{{ fnum(row.get('operating_cash_flow')) }}</td>
+                    <td>{{ fnum(row.get('accounts_receivable')) }}</td>
+                    <td>{{ fnum(row.get('inventory')) }}</td>
+                    <td>{{ fnum(row.get('goodwill')) }}</td>
+                  </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+            <div class="muted" style="font-size:11.5px; margin-top:6px">
+              Values in reporting-currency units as filed. Blanks indicate the concept was not tagged in that period.
+            </div>
+          {% endif %}
+
+          <div class="hr"></div>
+          <h2>Conclusion (caution framing)</h2>
+          <div class="muted">{{ report.conclusion }}</div>
+
+          <div class="hr"></div>
+          <h2>Limitations</h2>
+          <ul>
+            {% for l in report.limitations %}
+              <li class="muted">{{ l }}</li>
+            {% endfor %}
+          </ul>
+        </div>
+      </div>
+
+      <div class="card footer">
+        <div><strong>Sources analyzed</strong></div>
+        <ul>
+          {% for s in sources %}
+            <li class="muted">
+              {{ s.filing_type }} · {{ s.filing_date or "unknown date" }} ·
+              <a href="{{ s.primary_url }}" target="_blank" rel="noreferrer">{{ s.doc_id }}</a>
+            </li>
+          {% endfor %}
+        </ul>
+      </div>
+    </div>
+  </body>
+</html>

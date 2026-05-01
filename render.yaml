@@ -1,0 +1,36 @@
+# Render.com Infrastructure-as-Code config.
+# When the GitHub repo is connected, Render reads this file and creates the
+# service automatically — no clicking through the UI to configure.
+# Docs: https://render.com/docs/blueprint-spec
+
+services:
+  - type: web
+    name: muddy-reporter
+    runtime: python
+    plan: free
+    region: oregon
+    branch: main
+    rootDir: .
+
+    buildCommand: pip install --upgrade pip && pip install -r requirements.txt
+    startCommand: python web.py
+    healthCheckPath: /api/health
+
+    envVars:
+      - key: PYTHON_VERSION
+        value: "3.11.10"
+
+      # Render injects PORT automatically; web.py reads it.
+      # HOST is optional; we default to 0.0.0.0 in code.
+
+      # Secrets — set these in the Render dashboard, never in git.
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: SEC_USER_AGENT
+        sync: false
+
+      # Optional fallback / overrides (also set in dashboard if you want them):
+      # - key: OPENAI_API_KEY
+      #   sync: false
+      # - key: GEMINI_MODEL
+      #   value: gemini-2.5-pro
