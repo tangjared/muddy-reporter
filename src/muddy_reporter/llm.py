@@ -50,7 +50,8 @@ def provider_info() -> dict[str, str]:
     """Expose what's actually wired up (for the UI status badge)."""
     p = _provider()
     if p == "gemini":
-        return {"provider": "gemini", "model": os.getenv("GEMINI_MODEL") or "gemini-2.5-pro"}
+        # Default to flash (free tier compatible). Pro requires a paid plan as of 2025.
+        return {"provider": "gemini", "model": os.getenv("GEMINI_MODEL") or "gemini-2.5-flash"}
     if p == "openai":
         return {"provider": "openai", "model": os.getenv("OPENAI_MODEL") or "gpt-4.1-mini"}
     return {"provider": "heuristic", "model": "keyword-fallback"}
@@ -66,7 +67,9 @@ def _gemini_json(*, system: str, user: str, schema_hint: str, temperature: float
     from google.genai import types
 
     api_key = os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_API_KEY")
-    model = os.getenv("GEMINI_MODEL") or "gemini-2.5-pro"
+    # Default to flash, which is the free-tier model. gemini-2.5-pro requires a
+    # paid plan as of 2025 — using it on a free key returns 429 RESOURCE_EXHAUSTED.
+    model = os.getenv("GEMINI_MODEL") or "gemini-2.5-flash"
 
     client = genai.Client(api_key=api_key)
 
@@ -235,11 +238,17 @@ def _heuristic_json(*, user: str, schema_hint: str, error: str | None = None) ->
         ]
 
     if '"core_thesis"' in schema_hint and '"snapshot"' in schema_hint:
-        note = (
-            "This prototype ran without an LLM API key (heuristic mode); treat outputs as placeholders only."
-            if not error
-            else f"LLM call failed and pipeline degraded to heuristic mode. Last error: {error}"
-        )
+        if not error:
+            note = "This prototype ran without an LLM API key (heuristic mode); treat outputs as placeholders only."
+        else:
+            err_short = (error or "").split("\n", 1)[0][:280]
+            hint = ""
+            if "RESOURCE_EXHAUSTED" in error or "429" in error:
+                hint = (
+                    " — Gemini rate limit hit. The free tier of gemini-2.5-pro is limited to 0; "
+                    "set GEMINI_MODEL=gemini-2.5-flash (free) or upgrade to a paid plan."
+                )
+            note = f"LLM call failed; pipeline ran in heuristic-fallback mode. {err_short}{hint}"
         return {
             "company_name": None,
             "snapshot": {
