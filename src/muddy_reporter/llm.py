@@ -109,7 +109,15 @@ def provider_info() -> dict[str, str]:
 # ---------------------------------------------------------------------------
 
 
+# Free-tier Gemini caps at 20 requests / minute on gemini-2.5-flash. We add a
+# tiny global throttle + transparent retry on 429s so a normal report (12-18
+# chunks + synthesis + classifier) stays inside quota without surfacing errors.
+_LAST_GEMINI_CALL_TS: float = 0.0
+
+
 def _gemini_json(*, system: str, user: str, schema_hint: str, temperature: float) -> dict[str, Any]:
+    import time as _time
+
     from google import genai
     from google.genai import types
 
@@ -127,18 +135,40 @@ def _gemini_json(*, system: str, user: str, schema_hint: str, temperature: float
         "Do not include markdown fences or commentary."
     )
 
-    resp = client.models.generate_content(
-        model=model,
-        contents=prompt,
-        config=types.GenerateContentConfig(
-            system_instruction=system,
-            temperature=temperature,
-            response_mime_type="application/json",
-            max_output_tokens=8192,
-        ),
+    config = types.GenerateContentConfig(
+        system_instruction=system,
+        temperature=temperature,
+        response_mime_type="application/json",
+        max_output_tokens=8192,
     )
-    text = (resp.text or "").strip()
-    return _safe_load_json(text)
+
+    # ~3.2s gap = 18-19 RPM, comfortably under the 20-RPM free-tier ceiling.
+    min_gap = float(os.getenv("GEMINI_MIN_GAP_S") or "3.2")
+
+    last_err: Exception | None = None
+    for attempt in range(3):
+        global _LAST_GEMINI_CALL_TS
+        now = _time.monotonic()
+        wait = max(0.0, min_gap - (now - _LAST_GEMINI_CALL_TS))
+        if wait:
+            _time.sleep(wait)
+        _LAST_GEMINI_CALL_TS = _time.monotonic()
+
+        try:
+            resp = client.models.generate_content(model=model, contents=prompt, config=config)
+            return _safe_load_json((resp.text or "").strip())
+        except Exception as e:  # noqa: BLE001
+            last_err = e
+            msg = str(e)
+            if "429" in msg or "RESOURCE_EXHAUSTED" in msg:
+                # Honour the server's retry suggestion if it provided one.
+                m = re.search(r"retry in ([\d.]+)s", msg)
+                backoff = float(m.group(1)) + 0.5 if m else (4.0 + 4.0 * attempt)
+                _time.sleep(min(backoff, 30.0))
+                continue
+            raise
+
+    raise last_err if last_err else RuntimeError("Gemini call failed without an error")
 
 
 # ---------------------------------------------------------------------------
@@ -180,16 +210,26 @@ def _deepseek_json(*, system: str, user: str, schema_hint: str, temperature: flo
 
     Released April 24 2026. 1M context, 1.6T MoE (49B active), promotional
     pricing $0.435/M input + $0.87/M output through May 31. Supports a
-    `reasoning_effort` knob for chain-of-thought depth.
+    `reasoning_effort` knob for chain-of-thought depth (disabled by default
+    here because it adds ~100s of latency per call).
     """
     from openai import OpenAI
 
+    # Hard 120s ceiling on the whole HTTP exchange. Long enough for the
+    # classifier and synthesis on the slow relay, short enough that a stuck
+    # call falls back to heuristics within ~2 minutes instead of hanging.
+    timeout_s = float(os.getenv("DEEPSEEK_TIMEOUT_S") or "120")
     client = OpenAI(
         api_key=os.getenv("DEEPSEEK_API_KEY"),
         base_url=os.getenv("DEEPSEEK_BASE_URL") or "https://api.deepseek.com",
+        timeout=timeout_s,
+        max_retries=0,
     )
     model = os.getenv("DEEPSEEK_MODEL") or "deepseek-v4-pro"
-    effort = (os.getenv("DEEPSEEK_REASONING_EFFORT") or "high").strip().lower()
+    # Default DISABLED — reasoning_effort=high added ~100s latency per call on
+    # the relay we tested, which makes a 10-call report unusable. Set to low/
+    # high/max via env if you need it for a specific batch.
+    effort = (os.getenv("DEEPSEEK_REASONING_EFFORT") or "disabled").strip().lower()
 
     prompt = (
         f"{user}\n\n"
@@ -199,13 +239,17 @@ def _deepseek_json(*, system: str, user: str, schema_hint: str, temperature: flo
 
     extra: dict[str, Any] = {}
     if effort in {"low", "high", "max"}:
-        # Only V4 supports this; older deepseek-chat ignores unknown params gracefully.
         extra["reasoning_effort"] = effort
+
+    # Synthesis prompts emit a multi-section report JSON that can run 4-6k tokens.
+    # 8192 leaves headroom for verbose findings + claims + concerns_by_category.
+    max_out = int(os.getenv("DEEPSEEK_MAX_TOKENS") or "8192")
 
     resp = client.chat.completions.create(
         model=model,
         temperature=temperature,
         response_format={"type": "json_object"},
+        max_tokens=max_out,
         messages=[
             {"role": "system", "content": system},
             {"role": "user", "content": prompt},
@@ -213,6 +257,11 @@ def _deepseek_json(*, system: str, user: str, schema_hint: str, temperature: flo
         **extra,
     )
     text = (resp.choices[0].message.content or "").strip()
+    if not text:
+        raise RuntimeError(
+            "DeepSeek returned empty content (response was likely truncated; "
+            f"raise DEEPSEEK_MAX_TOKENS, currently {max_out})"
+        )
     return _safe_load_json(text)
 
 
@@ -325,89 +374,192 @@ def _safe_load_json(text: str) -> dict[str, Any]:
 _DOC_ID_RE = re.compile(r"Document ID:\s*(.+)")
 _URL_RE = re.compile(r"Source URL:\s*(.+)")
 _EXCERPT_RE = re.compile(r"Excerpt .*?:\n([\s\S]+)$")
+_FILING_TYPE_RE = re.compile(r"Filing type:\s*(.+)")
+
+
+_HEURISTIC_TRIGGERS: list[tuple[str, str, str, str, str, str]] = [
+    # (keyword regex, title, category, label, confidence, why_it_matters)
+    (r"going\s+concern", "Going-concern language present in this filing",
+     "disclosure", "question", "medium",
+     "Going-concern wording is one of the strongest auditor-level signals of solvency stress and demands a focused review of liquidity, debt walls, and management remediation plans."),
+    (r"material\s+weakness", "Material weakness in internal controls disclosed",
+     "governance", "inference", "medium",
+     "A material weakness in ICFR raises the probability of mis-stated financials and indicates the audit committee or auditor lost confidence in some part of the close process."),
+    (r"\brestated\s+(prior|previous|consolidated|financial|annual)|restatement\s+of\s+(financial|prior)|revised\s+previously\s+(reported|issued)\s+financial",
+     "Prior-period financial restatement / revision flagged",
+     "accounting", "inference", "medium",
+     "Restatements imply previously reported numbers were wrong; the size and direction of the change usually drives whether bull or bear gets to keep the original story."),
+    (r"related[\s-]?part(y|ies)", "Related-party transactions disclosed",
+     "related_parties", "question", "medium",
+     "Related-party deals can move economics off the audited statements; the specific party, board approval, and pricing methodology are the diligence priorities."),
+    (r"non[-\s]?gaap|adjust(ed)?\s+ebitda", "Heavy reliance on non-GAAP / adjusted metrics",
+     "disclosure", "question", "low",
+     "When management leans on non-GAAP measures, reconcile their adjustments line by line; aggressive add-backs (SBC, restructuring, lease) often hide deteriorating GAAP economics."),
+    (r"impair(ment)?", "Impairment / write-down disclosed",
+     "accounting", "question", "low",
+     "Impairments tell you where prior optimism (acquisition price, capex, intangibles) didn’t pan out; cluster vs. peers and prior years to spot a serial pattern."),
+    (r"covenant", "Debt covenant language requires review",
+     "capital_structure", "question", "medium",
+     "A breached or close-to-breach covenant compresses optionality and can force asset sales, equity raises, or restructuring on terms unfavourable to existing holders."),
+    (r"liquidity\s+(risk|concerns?)|insufficient\s+(cash|liquidity)",
+     "Liquidity-related risk language flagged",
+     "capital_structure", "question", "medium",
+     "Liquidity language combined with debt walls and tight cash is the classic stress trigger; map the next 18-24 months of obligations against on-balance-sheet cash."),
+    (r"internal\s+control(s)?", "Internal-control disclosures present",
+     "governance", "question", "low",
+     "Companies disclose internal-control content even in clean years; what to read for is *changes* in scope, deficiencies, and remediation status year over year."),
+    (r"regulator(y|s)\s+(action|inquir|investigat)|sec\s+(enforcement|investigation|subpoena)",
+     "Active or recent regulatory action disclosed",
+     "regulatory_legal", "inference", "medium",
+     "Open enforcement actions are existential; quantify potential fines, disgorgement, and restrictions and check whether the disclosure has expanded in subsequent filings."),
+    (r"litigation|class\s+action|settl(ement|ed)\s+(claims?|lawsuit)",
+     "Litigation / class-action exposure disclosed",
+     "regulatory_legal", "question", "low",
+     "Material lawsuits should be pressure-tested for reserve adequacy and disclosed loss contingency framing (probable / reasonably possible / remote)."),
+    (r"auditor\s+(change|resign|dismiss)|change\s+in\s+(certifying\s+)?accountant",
+     "Auditor change disclosed",
+     "governance", "inference", "high",
+     "Auditor changes — especially involuntary ones — are one of the highest base-rate forensic signals; check the 8-K item 4.01 for resignation language and any disagreements."),
+    (r"channel\s+stuff|days\s+sales\s+outstanding|\bDSO\b",
+     "Channel-stuffing / receivables collection language",
+     "accounting", "question", "medium",
+     "Aggressive end-of-period sell-in lifts revenue without lifting cash; pair this excerpt with the AR-vs-revenue chart in the Anomalies section."),
+    (r"reserve\s+release|change\s+in\s+(estimate|reserve)|loss\s+reserve",
+     "Reserve / estimate change disclosed",
+     "accounting", "question", "low",
+     "Reserve releases and estimate changes are the cleanest way to manage earnings; check whether the timing aligns with covenant tests, executive comp targets, or deal completion."),
+    (r"customer\s+concentration|single\s+customer|major\s+customer",
+     "Customer-concentration risk disclosed",
+     "operations", "question", "low",
+     "Concentration with a single customer transforms idiosyncratic counterparty risk into existential risk; pull historical revenue mix to confirm whether the dependence is rising."),
+    (r"supply\s+chain|raw\s+materials\s+shortage|key\s+supplier",
+     "Supply-chain dependency or stress disclosed",
+     "operations", "question", "low",
+     "Supply-side disclosures bear on gross margin durability and inventory write-down risk."),
+    (r"short[\s-]?seller|short[\s-]?selling\s+report|hindenburg|muddy\s+waters|investigative\s+(short|report)|whistleblower\s+(complaint|allegation)",
+     "Short-seller / activist allegations referenced",
+     "disclosure", "question", "low",
+     "Tracking a company’s own response to a short report tells you which allegations management thinks they need to neutralize publicly."),
+    (r"discontin(ued|uation)|wind[\s-]?down|exit(ed|ing)\s+(business|segment)",
+     "Discontinued operations / segment exit disclosed",
+     "operations", "inference", "low",
+     "Segment exits often trigger one-time charges and re-baseline guidance; verify that the continuing-ops trend is itself attractive once the exit is removed."),
+]
+
+
+def _heuristic_findings_for_doc(*, doc_id: str, url: str, filing_type: str | None,
+                                excerpt: str) -> list[dict[str, Any]]:
+    """Pattern-based finding extractor for use when no LLM key is configured."""
+    if not excerpt.strip():
+        return []
+    lines = [ln.strip() for ln in excerpt.splitlines() if ln.strip()]
+    joined = "\n".join(lines)
+    lower = joined.lower()
+
+    def cite(snippet: str) -> dict[str, str]:
+        snippet = snippet.strip()
+        if len(snippet) > 900:
+            snippet = snippet[:897].rstrip() + "…"
+        return {"doc_id": doc_id or "UNKNOWN", "url": url or "", "excerpt": snippet}
+
+    seen_titles: set[str] = set()
+    findings: list[dict[str, Any]] = []
+
+    for pattern, title, cat, label, conf, why in _HEURISTIC_TRIGGERS:
+        m = re.search(pattern, lower)
+        if not m:
+            continue
+        if title in seen_titles:
+            continue
+        # Pick the line containing the match for citation context.
+        idx = lower.find(m.group(0))
+        line = ""
+        if idx != -1:
+            # Walk to nearest line break window.
+            start = max(0, idx - 200)
+            end = min(len(joined), idx + 300)
+            line = joined[start:end].strip()
+        if not line:
+            line = next((ln for ln in lines if re.search(pattern, ln.lower())), "")
+        if not line:
+            continue
+        keyword = m.group(0)
+        findings.append(
+            {
+                "title": title,
+                "category": cat,
+                "label": label,
+                "confidence": conf,
+                "claim_or_observation": (
+                    f"In the {filing_type or 'filing'} excerpt, language matching '{keyword}' is present: "
+                    f"\"{line[:280]}\"."
+                ),
+                "why_it_matters": why,
+                "counterpoints_or_alt_explanations": [
+                    "Risk-factor and MD&A boilerplate often contains these words even in healthy companies — context decides severity.",
+                    "Compare the precise wording to the same section in the prior filing year; an unchanged paragraph is usually neutral.",
+                ],
+                "open_questions": [
+                    f"Does the surrounding section quantify the impact of '{keyword}' (dollars, units, customers, time horizon)?",
+                    "Has the disclosure expanded, contracted, or changed tone vs the previous filing of the same form?",
+                ],
+                "citations": [cite(line)],
+            }
+        )
+        seen_titles.add(title)
+
+    if findings:
+        return findings[:5]
+
+    seed = lines[0] if lines else excerpt[:400]
+    return [
+        {
+            "title": "No salient red-flag keywords in this excerpt",
+            "category": "other",
+            "label": "question",
+            "confidence": "low",
+            "claim_or_observation": (
+                "Pattern-based scan did not surface a high-priority signal in this chunk; the LLM-disabled prototype mode "
+                "is conservative and converts weak evidence into diligence questions rather than findings."
+            ),
+            "why_it_matters": (
+                "Even a clean excerpt is informative — the absence of stress language in this section narrows where to "
+                "concentrate time during a manual read."
+            ),
+            "counterpoints_or_alt_explanations": [
+                "The pattern library is not exhaustive; subtle disclosures (e.g., footnote-only related-party deals) can be missed.",
+            ],
+            "open_questions": [
+                "Which sections of this filing changed most vs the prior year (use the SEC redline tool if available)?",
+                "Are there judgment-heavy accounting policies (revenue recognition, capitalized R&D, lease classification) worth focusing on?",
+            ],
+            "citations": [cite(seed)],
+        }
+    ]
 
 
 def _heuristic_json(*, user: str, schema_hint: str, error: str | None = None) -> dict[str, Any]:
     doc_id = None
     url = None
+    filing_type = None
     m = _DOC_ID_RE.search(user)
     if m:
         doc_id = m.group(1).strip()
     m = _URL_RE.search(user)
     if m:
         url = m.group(1).strip()
+    m = _FILING_TYPE_RE.search(user)
+    if m:
+        filing_type = m.group(1).strip()
     m = _EXCERPT_RE.search(user)
     excerpt = (m.group(1).strip() if m else user[-4000:]).strip()
 
-    def cite(snippet: str) -> dict[str, str]:
-        return {"doc_id": doc_id or "UNKNOWN", "url": url or "", "excerpt": snippet.strip()[:900]}
-
-    lines = [ln.strip() for ln in excerpt.splitlines() if ln.strip()]
-    joined = "\n".join(lines)
-
-    triggers = [
-        ("going concern", "disclosure", "question", "low"),
-        ("material weakness", "accounting", "question", "medium"),
-        ("restatement", "accounting", "question", "medium"),
-        ("related party", "related_parties", "question", "medium"),
-        ("non-gaap", "disclosure", "question", "low"),
-        ("impair", "accounting", "question", "low"),
-        ("covenant", "capital_structure", "question", "medium"),
-        ("liquidity", "capital_structure", "question", "low"),
-        ("internal control", "governance", "question", "low"),
-        ("regulatory", "regulatory_legal", "question", "low"),
-        ("litigation", "regulatory_legal", "question", "low"),
-    ]
-
-    findings = []
-    for kw, cat, label, conf in triggers:
-        if kw in joined.lower():
-            hit = next((ln for ln in lines if kw in ln.lower()), "") or joined[:400]
-            findings.append(
-                {
-                    "title": f"Keyword signal: {kw}",
-                    "category": cat,
-                    "label": label,
-                    "confidence": conf,
-                    "claim_or_observation": (
-                        f"The filing excerpt includes language related to '{kw}', which may warrant follow-up diligence."
-                    ),
-                    "why_it_matters": (
-                        "Such disclosures sometimes correlate with elevated financial, governance, or "
-                        "operational risk (needs verification in full context)."
-                    ),
-                    "counterpoints_or_alt_explanations": [
-                        "Keyword hits can be boilerplate risk-factor language rather than a specific adverse event.",
-                        "Full document context may reduce or eliminate the concern.",
-                    ],
-                    "open_questions": [
-                        f"What is the precise context around the '{kw}' language (section, scope, magnitude, timeframe)?",
-                        "Has this disclosure changed materially vs prior filings?",
-                    ],
-                    "citations": [cite(hit)],
-                }
-            )
-
-    if not findings:
-        seed = lines[0] if lines else excerpt[:400]
-        findings = [
-            {
-                "title": "Insufficient evidence in excerpt (needs review)",
-                "category": "other",
-                "label": "question",
-                "confidence": "low",
-                "claim_or_observation": (
-                    "This excerpt alone does not contain a clear contradiction or red flag; further document review is required."
-                ),
-                "why_it_matters": "A skeptical workflow should avoid overreach and convert weak signals into diligence questions.",
-                "counterpoints_or_alt_explanations": [],
-                "open_questions": [
-                    "Which metrics, KPIs, or accounting policies appear most judgment-heavy in the full filing?",
-                    "Are there sudden changes in definitions, segmentation, or disclosure detail year-over-year?",
-                ],
-                "citations": [cite(seed)],
-            }
-        ]
+    findings = _heuristic_findings_for_doc(
+        doc_id=doc_id or "UNKNOWN",
+        url=url or "",
+        filing_type=filing_type,
+        excerpt=excerpt,
+    )
 
     if '"core_thesis"' in schema_hint and '"snapshot"' in schema_hint:
         if not error:

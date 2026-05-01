@@ -323,6 +323,84 @@ def classify_fraud_likelihood(
     out.setdefault("differentiators", "")
     out.setdefault("key_red_flags", [])
     out.setdefault("mitigating_factors", [])
+    _ensure_classifier_narrative(out)
     out["model"] = provider_info()  # provenance: which model produced this verdict
 
     return out
+
+
+def _stringify_llm_field(val: Any) -> str:
+    """Coerce list/dict-shaped LLM output to plain text for the UI."""
+    if val is None:
+        return ""
+    if isinstance(val, str):
+        return val.strip()
+    if isinstance(val, list):
+        return "\n".join(str(x).strip() for x in val if str(x).strip()).strip()
+    if isinstance(val, dict):
+        for k in ("summary", "text", "explanation", "analysis", "reasoning"):
+            if val.get(k):
+                return str(val[k]).strip()
+        try:
+            return json.dumps(val, ensure_ascii=False, indent=2)[:4000]
+        except Exception:
+            return str(val).strip()
+    return str(val).strip()
+
+
+def _ensure_classifier_narrative(out: dict[str, Any]) -> None:
+    """Guarantee non-empty reasoning for the SPA (models often omit or nest it)."""
+    reasoning = _stringify_llm_field(out.get("reasoning"))
+    diff = _stringify_llm_field(out.get("differentiators"))
+    if not reasoning and diff:
+        reasoning = diff
+
+    if not reasoning:
+        parts: list[str] = []
+        kr = out.get("key_red_flags") or []
+        if kr:
+            parts.append(
+                "Signals weighing on the score: " + "; ".join(str(x) for x in kr[:8] if x)
+            )
+        mit = out.get("mitigating_factors") or []
+        if mit:
+            parts.append(
+                "Offsetting / benign explanations to weigh: " + "; ".join(str(x) for x in mit[:6] if x)
+            )
+        sim = out.get("similar_to") or []
+        if sim:
+            parts.append(
+                "Closest analogues in the internal case library: "
+                + ", ".join(str(x) for x in sim[:5] if x)
+                + "."
+            )
+        reasoning = " ".join(p for p in parts if p).strip()
+
+    if not reasoning:
+        p = float(out.get("fraud_probability") or 0.5)
+        v = out.get("verdict") or "watch"
+        reasoning = (
+            f"The few-shot classifier calibrated a {p * 100:.0f}% misrepresentation-risk score ({v}) "
+            "but did not return a narrative. Treat this as incomplete output: rely on deterministic "
+            "anomalies, cited red flags, and manual filing review."
+        )
+    out["reasoning"] = reasoning
+    out["differentiators"] = diff
+
+    st: list[str] = []
+    for x in out.get("similar_to") or []:
+        s = str(x).strip()
+        if s:
+            st.append(s)
+    out["similar_to"] = st
+
+    def _norm_list(key: str) -> None:
+        acc: list[str] = []
+        for x in out.get(key) or []:
+            s = str(x).strip()
+            if s:
+                acc.append(s)
+        out[key] = acc
+
+    _norm_list("key_red_flags")
+    _norm_list("mitigating_factors")

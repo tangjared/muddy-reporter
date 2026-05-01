@@ -602,7 +602,26 @@
               <span class="text-line-strong">·</span>
               <span x-text="formatTimestamp(report.generated_at_iso)"></span>
               <span class="text-line-strong">·</span>
-              <span x-text="(report.provider_info && report.provider_info.provider) || 'heuristic'"></span>
+              <span x-text="providerLabel()"></span>
+            </div>
+
+            <!-- Heuristic-mode banner: only shown when no real LLM is wired up -->
+            <div x-show="isHeuristicMode()" class="mb-6 rounded-lg border border-amber2-500/40 bg-amber2-500/[0.08] px-5 py-4 text-[13px] leading-relaxed">
+              <div class="flex items-start gap-3">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="text-amber2-600 shrink-0 mt-0.5">
+                  <circle cx="12" cy="12" r="10"/><path d="M12 8v5"/><path d="M12 16.5h.01"/>
+                </svg>
+                <div>
+                  <div class="mono text-[11px] uppercase tracking-wider text-amber2-700 font-medium mb-1">Heuristic mode (no LLM key configured)</div>
+                  <div class="text-ink-body">
+                    Snapshot is sourced from SEC EDGAR metadata, red flags are pattern-matched against a forensic keyword library, and the
+                    Management vs. Evidence panel is auto-derived from cited findings. To get LLM-grade narrative (DeepSeek V4 Pro / Gemini 2.5 / GPT-4.1)
+                    set <code class="bg-paper-tint px-1 py-0.5 rounded mono text-[12px]">DEEPSEEK_API_KEY</code> or
+                    <code class="bg-paper-tint px-1 py-0.5 rounded mono text-[12px]">GEMINI_API_KEY</code>
+                    in <code class="bg-paper-tint px-1 py-0.5 rounded mono text-[12px]">.env</code> (locally) or your Render dashboard, and re-generate.
+                  </div>
+                </div>
+              </div>
             </div>
 
             <!-- Logo + name row -->
@@ -676,17 +695,21 @@
                      :class="'verdict-' + (report.fraud_classifier?.verdict || 'watch')"
                      x-text="(report.fraud_classifier?.verdict || 'watch').replace('_',' ')"></div>
                 <div class="mt-2 text-[10px] mono text-ink-muted">
-                  Few-shot · <span x-text="(report.fraud_classifier?.model && report.fraud_classifier.model.model) || 'n/a'"></span>
+                  Few-shot · <span x-text="fraudModelLabel(report.fraud_classifier)"></span>
                 </div>
-                <button @click="open = !open" class="mt-3 mono text-[11px] uppercase tracking-wider text-ink-muted hover:text-ink flex items-center gap-1.5">
+                <button type="button" @click="open = !open" class="mt-3 mono text-[11px] uppercase tracking-wider text-ink-muted hover:text-ink flex items-center gap-1.5">
                   <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
                        :class="open ? 'rotate-90' : ''" class="transition">
                     <path d="M9 18l6-6-6-6"/>
                   </svg>
                   <span x-text="open ? 'Hide reasoning' : 'Why this verdict'"></span>
                 </button>
-                <div x-show="open" x-collapse class="mt-3 pt-3 border-t hl space-y-2 text-xs text-ink-body">
-                  <p x-text="report.fraud_classifier?.reasoning"></p>
+                <div x-show="open" x-collapse class="mt-3 pt-3 border-t hl space-y-3 text-xs text-ink-body">
+                  <p class="body-text whitespace-pre-wrap leading-relaxed" x-text="report.fraud_classifier?.reasoning || '—'"></p>
+                  <div x-show="fraudDifferentiators(report.fraud_classifier)" class="text-[11px] text-ink-muted leading-relaxed">
+                    <span class="eyebrow text-ink-muted">Differentiators</span>
+                    <p class="mt-1 whitespace-pre-wrap" x-text="fraudDifferentiators(report.fraud_classifier)"></p>
+                  </div>
                   <div x-show="(report.fraud_classifier?.similar_to || []).length">
                     <div class="eyebrow mt-3 mb-1">Similar cases</div>
                     <div class="flex flex-wrap gap-1">
@@ -781,10 +804,40 @@
               </dl>
             </section>
 
+            <!-- CORE BEAR THESIS -->
+            <section id="thesis">
+              <h2 class="display text-[42px] font-bold mb-1">Core concern thesis</h2>
+              <div class="eyebrow mb-6">02 · Hypothesis to test, not a verdict</div>
+              <div class="card p-6">
+                <p class="lead whitespace-pre-wrap text-ink-body" x-text="report.core_thesis || '—'"></p>
+                <div class="mt-5 grid sm:grid-cols-3 gap-3 text-[12px]">
+                  <div class="p-3 rounded-lg bg-paper-tint border hl">
+                    <div class="eyebrow mb-1">Filings analyzed</div>
+                    <div class="display text-2xl font-bold" x-text="(report.sources_analyzed || []).length || sourcesCount()"></div>
+                  </div>
+                  <div class="p-3 rounded-lg bg-paper-tint border hl">
+                    <div class="eyebrow mb-1">Risk grade</div>
+                    <div class="display text-2xl font-bold" x-text="report.risk_grade?.grade || '—'"></div>
+                  </div>
+                  <div class="p-3 rounded-lg bg-paper-tint border hl">
+                    <div class="eyebrow mb-1">Fraud likelihood</div>
+                    <div class="display text-2xl font-bold"
+                         x-text="report.fraud_classifier?.fraud_probability !== undefined
+                                 ? ((report.fraud_classifier.fraud_probability || 0) * 100).toFixed(0) + '%'
+                                 : '—'"></div>
+                  </div>
+                </div>
+                <p class="mt-5 text-[12px] text-ink-muted">
+                  Framing: this is a <strong>concern thesis</strong> — a structured hypothesis flagging where the company may warrant deeper review.
+                  It is not an allegation of wrongdoing, not a recommendation to short, and every claim must be reconciled to the cited filings below.
+                </p>
+              </div>
+            </section>
+
             <!-- ANOMALIES + CHARTS -->
             <section id="anomalies">
               <h2 class="display text-[42px] font-bold mb-1">Quantitative anomalies</h2>
-              <div class="eyebrow mb-6">02 · From XBRL · Deterministic</div>
+              <div class="eyebrow mb-6">03 · From XBRL · Deterministic</div>
 
               <template x-if="(report.financial_anomalies || []).length === 0">
                 <div class="card p-6 body-text">
@@ -816,14 +869,14 @@
               <div class="grid md:grid-cols-2 gap-4 mt-6" x-show="(report.financial_table || []).length > 1">
                 <div id="chart-rev-ar" class="card p-3 min-h-[300px]"></div>
                 <div id="chart-ni-cfo" class="card p-3 min-h-[300px]"></div>
-                <div id="chart-margin"  class="card p-3 min-h-[300px] md:col-span-2"></div>
+                <div id="chart-margin" class="card p-3 min-h-[300px] md:col-span-2" x-show="hasGrossMarginData()"></div>
               </div>
             </section>
 
             <!-- FORENSIC SCORES -->
             <section id="forensic" x-show="report.forensic_scores && (report.forensic_scores.beneish_m !== null || report.forensic_scores.piotroski_f !== null || report.forensic_scores.altman_z !== null)">
               <h2 class="display text-[42px] font-bold mb-1">Forensic scores</h2>
-              <div class="eyebrow mb-6">03 · Academic distress &amp; manipulation models</div>
+              <div class="eyebrow mb-6">04 · Academic distress &amp; manipulation models</div>
 
               <div class="grid md:grid-cols-3 gap-4">
                 <!-- BENEISH M-SCORE -->
@@ -943,8 +996,8 @@
 
             <!-- TOP RED FLAGS -->
             <section id="redflags">
-              <h2 class="display text-[42px] font-bold mb-1">Top red flags</h2>
-              <div class="eyebrow mb-6">04 · Citation-graded</div>
+              <h2 class="display text-[42px] font-bold mb-1">Key alleged red flags</h2>
+              <div class="eyebrow mb-6">05 · Citation-graded</div>
 
               <template x-if="(report.red_flags || []).length === 0">
                 <div class="text-ink-muted body-text">No red flags surfaced.</div>
@@ -952,7 +1005,7 @@
 
               <div class="space-y-5">
                 <template x-for="(f, idx) in (report.red_flags || [])" :key="idx">
-                  <article class="card p-6">
+                  <article class="card p-6" x-data="{ diligenceOpen: idx < 3 }">
                     <div class="flex items-start gap-5">
                       <div class="flag-num shrink-0" x-text="String(idx + 1).padStart(2,'0')"></div>
                       <div class="flex-1 min-w-0">
@@ -966,60 +1019,76 @@
                                 x-text="(f.category || '').replace(/_/g,' ')"></span>
                         </div>
 
-                        <p class="body-text mb-4" x-text="f.claim_or_observation"></p>
+                        <p class="body-text mb-4 whitespace-pre-wrap" x-text="f.claim_or_observation"></p>
 
                         <div class="matters-block my-4">
                           <div class="eyebrow text-blood-500 mb-1">Why it matters</div>
-                          <p class="body-text" x-text="f.why_it_matters"></p>
+                          <p class="body-text whitespace-pre-wrap" x-text="f.why_it_matters"></p>
                         </div>
 
-                        <div x-data="{ open: false }" class="mt-4" x-show="(f.counterpoints_or_alt_explanations || []).length || (f.open_questions || []).length">
-                          <button @click="open = !open" class="mono text-[11px] uppercase tracking-wider text-ink-muted hover:text-ink flex items-center gap-1.5">
-                            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
-                                 :class="open ? 'rotate-90' : ''" class="transition">
-                              <path d="M9 18l6-6-6-6"/>
-                            </svg>
-                            <span x-text="open ? 'Hide context' : 'Counterpoints & questions'"></span>
-                          </button>
-                          <div x-show="open" x-collapse class="mt-3 grid sm:grid-cols-2 gap-5 body-text">
-                            <div x-show="(f.counterpoints_or_alt_explanations || []).length">
-                              <div class="eyebrow mb-1.5">Counterpoints</div>
-                              <ul class="space-y-1 list-disc list-outside ml-4">
-                                <template x-for="c in f.counterpoints_or_alt_explanations" :key="c">
-                                  <li x-text="c"></li>
-                                </template>
-                              </ul>
-                            </div>
-                            <div x-show="(f.open_questions || []).length">
-                              <div class="eyebrow mb-1.5">Open questions</div>
-                              <ul class="space-y-1 list-disc list-outside ml-4">
-                                <template x-for="q in f.open_questions" :key="q">
-                                  <li x-text="q"></li>
-                                </template>
-                              </ul>
-                            </div>
-                          </div>
-                        </div>
-
-                        <!-- Citations -->
                         <div class="mt-5" x-show="(f.citations || []).length">
                           <div class="eyebrow mb-2 flex items-center gap-1.5">
                             <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.72-1.71"/></svg>
-                            Citations
+                            Source excerpts (verify in filing)
                           </div>
-                          <div class="space-y-2.5">
-                            <template x-for="c in f.citations" :key="c.excerpt">
-                              <div>
+                          <div class="space-y-3">
+                            <template x-for="(c, ci) in f.citations" :key="ci">
+                              <div class="rounded-lg border hl bg-paper-tint/80 p-4">
                                 <a :href="c.url" target="_blank" rel="noreferrer"
-                                   class="mono text-[11px] text-azure-500 hover:underline" x-text="c.doc_id"></a>
-                                <div class="cite-quote mt-1" x-text="c.excerpt"></div>
+                                   class="mono text-[11px] text-azure-500 hover:underline font-medium" x-text="c.doc_id"></a>
+                                <div class="cite-quote mt-2 whitespace-pre-wrap text-[13px] leading-relaxed" x-text="c.excerpt"></div>
                               </div>
                             </template>
                           </div>
                         </div>
 
-                        <div x-show="(f.citations || []).length === 0" class="mt-3 text-xs text-amber2-500">
-                          ⚠ No citations attached — treat as low-confidence pending verification.
+                        <div x-show="(f.citations || []).length === 0" class="mt-3 text-xs text-amber2-600 border border-amber2-500/35 bg-amber2-500/8 rounded-lg p-3">
+                          No citation attached — treat as a working hypothesis until you tie it to a verbatim filing quote.
+                        </div>
+
+                        <div class="mt-5 border-t hl pt-4">
+                          <button type="button" @click="diligenceOpen = !diligenceOpen"
+                                  class="mono text-[11px] uppercase tracking-wider text-ink-muted hover:text-ink flex items-center gap-1.5">
+                            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
+                                 :class="diligenceOpen ? 'rotate-90' : ''" class="transition">
+                              <path d="M9 18l6-6-6-6"/>
+                            </svg>
+                            <span x-text="diligenceOpen ? 'Hide extended diligence' : 'Extended diligence (counterpoints & checklist)'"></span>
+                          </button>
+                          <div x-show="diligenceOpen" x-collapse class="mt-4 space-y-5 body-text">
+                            <div class="grid sm:grid-cols-2 gap-5">
+                              <div>
+                                <div class="eyebrow mb-1.5">Plausible benign explanations</div>
+                                <ul class="space-y-1.5 list-disc list-outside ml-4 text-[13px]" x-show="(f.counterpoints_or_alt_explanations || []).length">
+                                  <template x-for="c in f.counterpoints_or_alt_explanations" :key="c">
+                                    <li class="whitespace-pre-wrap" x-text="c"></li>
+                                  </template>
+                                </ul>
+                                <p class="text-xs text-ink-muted" x-show="!(f.counterpoints_or_alt_explanations || []).length">
+                                  None were auto-generated. Consider seasonality, one-offs, GAAP policy choices, or definitional differences vs. peers — then search the filing for management’s stated explanation.
+                                </p>
+                              </div>
+                              <div>
+                                <div class="eyebrow mb-1.5">Per-finding follow-ups</div>
+                                <ul class="space-y-1.5 list-disc list-outside ml-4 text-[13px]" x-show="(f.open_questions || []).length">
+                                  <template x-for="q in f.open_questions" :key="q">
+                                    <li class="whitespace-pre-wrap" x-text="q"></li>
+                                  </template>
+                                </ul>
+                                <p class="text-xs text-ink-muted" x-show="!(f.open_questions || []).length">
+                                  No extra prompts here. Ask what document, subsidiary schedule, or ledger would disprove this concern.
+                                </p>
+                              </div>
+                            </div>
+                            <div class="p-4 rounded-lg bg-azure-500/[0.06] border border-azure-500/25 text-[13px]">
+                              <div class="eyebrow mb-2 text-azure-700">Fact-check workflow</div>
+                              <ol class="list-decimal list-outside ml-4 space-y-1.5 text-ink-body">
+                                <li>Open the filing link and locate the same language in the filed document (search distinctive words).</li>
+                                <li>Reconcile any numbers in the quote to the audited statements, not only MD&A prose.</li>
+                                <li>If narrative and tables diverge, widen sampling to adjacent fiscal periods.</li>
+                              </ol>
+                            </div>
+                          </div>
                         </div>
                       </div>
                     </div>
@@ -1028,10 +1097,71 @@
               </div>
             </section>
 
+            <!-- EVIDENCE SUMMARY (per source document) -->
+            <section id="evidence">
+              <h2 class="display text-[42px] font-bold mb-1">Evidence summary</h2>
+              <div class="eyebrow mb-6">06 · By source document</div>
+
+              <template x-if="!(report.evidence_index || []).length && !(report.sources_analyzed || []).length">
+                <div class="card p-5 body-text text-ink-muted">
+                  No source-level evidence ledger was produced for this run. Citations live inline under each red flag above.
+                </div>
+              </template>
+
+              <div class="space-y-3" x-show="(report.evidence_index || []).length">
+                <template x-for="(e, ei) in (report.evidence_index || [])" :key="e.doc_id || ei">
+                  <article class="card p-5">
+                    <div class="flex items-start justify-between gap-4 flex-wrap">
+                      <div class="min-w-0">
+                        <div class="flex items-center gap-2 flex-wrap">
+                          <span class="mono text-[11px] uppercase tracking-wider px-2 py-0.5 rounded bg-paper-tint border hl text-ink-body font-medium" x-text="e.filing_type || 'filing'"></span>
+                          <span class="mono text-[11px] text-ink-muted" x-text="e.filing_date || ''"></span>
+                          <a :href="e.url" target="_blank" rel="noreferrer"
+                             class="mono text-[11px] text-azure-500 hover:underline truncate" x-text="e.doc_id"></a>
+                        </div>
+                        <p class="text-sm text-ink-muted mt-2" x-show="(e.finding_titles || []).length">
+                          Backs <span class="font-medium text-ink-body" x-text="(e.finding_titles || []).length"></span>
+                          finding<span x-text="(e.finding_titles || []).length === 1 ? '' : 's'"></span>:
+                          <span x-text="(e.finding_titles || []).slice(0,3).join(' · ')"></span>
+                          <span x-show="(e.finding_titles || []).length > 3"
+                                x-text="' + ' + ((e.finding_titles.length - 3) + ' more')"></span>
+                        </p>
+                        <p class="text-xs text-ink-muted mt-2" x-show="!(e.finding_titles || []).length">
+                          Ingested but did not anchor any cited finding in this run.
+                        </p>
+                      </div>
+                      <div class="text-right shrink-0">
+                        <div class="eyebrow">Citations</div>
+                        <div class="display text-2xl font-bold" :class="(e.citation_count || 0) > 0 ? 'text-blood-500' : 'text-ink-muted'"
+                             x-text="e.citation_count || 0"></div>
+                      </div>
+                    </div>
+                    <div class="mt-4 space-y-2.5" x-show="(e.sample_excerpts || []).length">
+                      <template x-for="(s, si) in (e.sample_excerpts || [])" :key="si">
+                        <div class="rounded-lg border hl bg-paper-tint/70 p-3">
+                          <div class="mono text-[10px] uppercase tracking-wider text-ink-muted mb-1">
+                            <span x-text="s.label"></span> · <span x-text="s.finding"></span>
+                          </div>
+                          <div class="cite-quote whitespace-pre-wrap text-[12.5px] leading-relaxed" x-text="s.excerpt"></div>
+                        </div>
+                      </template>
+                    </div>
+                  </article>
+                </template>
+              </div>
+
+              <div class="mt-4 text-[11px] text-ink-muted" x-show="(report.sources_analyzed || []).length">
+                Total filings ingested:
+                <span class="mono" x-text="(report.sources_analyzed || []).length"></span> ·
+                Filings cited at least once:
+                <span class="mono" x-text="(report.evidence_index || []).filter(e => (e.citation_count || 0) > 0).length"></span>
+              </div>
+            </section>
+
             <!-- MANAGEMENT vs EVIDENCE -->
             <section id="claims" x-show="(report.management_claims_vs_counterpoints || []).length">
-              <h2 class="display text-[42px] font-bold mb-1">Management vs evidence</h2>
-              <div class="eyebrow mb-6">05 · Side-by-side</div>
+              <h2 class="display text-[42px] font-bold mb-1">Management claims vs counterpoints</h2>
+              <div class="eyebrow mb-6">07 · Side-by-side</div>
               <div class="space-y-4">
                 <template x-for="(row, i) in (report.management_claims_vs_counterpoints || [])" :key="i">
                   <div class="card overflow-hidden">
@@ -1054,16 +1184,29 @@
             </section>
 
             <!-- CONCERNS BY CATEGORY -->
-            <section id="categories" x-show="hasCategoryConcerns()">
-              <h2 class="display text-[42px] font-bold mb-1">Concerns by category</h2>
-              <div class="eyebrow mb-6">06</div>
+            <section id="categories">
+              <h2 class="display text-[42px] font-bold mb-1">Accounting · governance · disclosure · operations</h2>
+              <div class="eyebrow mb-6">08 · Concerns by category</div>
               <div class="grid sm:grid-cols-2 gap-4">
-                <template x-for="[cat, items] in categoryEntries()" :key="cat">
+                <template x-for="cat in requiredCategoryOrder()" :key="cat">
+                  <div class="card p-5">
+                    <div class="eyebrow mb-3" x-text="cat.replace(/_/g,' ')"></div>
+                    <ul class="body-text space-y-1.5 list-disc list-outside ml-4" x-show="((report.concerns_by_category || {})[cat] || []).length">
+                      <template x-for="it in (report.concerns_by_category || {})[cat] || []" :key="it">
+                        <li class="whitespace-pre-wrap" x-text="it"></li>
+                      </template>
+                    </ul>
+                    <p class="text-xs text-ink-muted" x-show="!((report.concerns_by_category || {})[cat] || []).length">
+                      No items surfaced in this pass — see Top red flags and Open questions for related themes.
+                    </p>
+                  </div>
+                </template>
+                <template x-for="[cat, items] in optionalCategoryEntries()" :key="cat">
                   <div class="card p-5">
                     <div class="eyebrow mb-3" x-text="cat.replace(/_/g,' ')"></div>
                     <ul class="body-text space-y-1.5 list-disc list-outside ml-4">
                       <template x-for="it in items" :key="it">
-                        <li x-text="it"></li>
+                        <li class="whitespace-pre-wrap" x-text="it"></li>
                       </template>
                     </ul>
                   </div>
@@ -1072,23 +1215,31 @@
             </section>
 
             <!-- OPEN QUESTIONS -->
-            <section id="questions" x-show="(report.open_questions || []).length">
-              <h2 class="display text-[42px] font-bold mb-1">Questions for management</h2>
-              <div class="eyebrow mb-6">07</div>
-              <ol class="space-y-3 body-text">
-                <template x-for="(q, i) in (report.open_questions || [])" :key="i">
-                  <li class="flex gap-4">
-                    <span class="mono text-ink-muted shrink-0 font-medium" x-text="String(i+1).padStart(2,'0')"></span>
-                    <span x-text="q"></span>
-                  </li>
-                </template>
-              </ol>
+            <section id="questions">
+              <h2 class="display text-[42px] font-bold mb-1">Open questions for further diligence</h2>
+              <div class="eyebrow mb-6">09</div>
+              <template x-if="(report.open_questions || []).length">
+                <ol class="space-y-3 body-text">
+                  <template x-for="(q, i) in (report.open_questions || [])" :key="i">
+                    <li class="flex gap-4">
+                      <span class="mono text-ink-muted shrink-0 font-medium" x-text="String(i+1).padStart(2,'0')"></span>
+                      <span class="whitespace-pre-wrap" x-text="q"></span>
+                    </li>
+                  </template>
+                </ol>
+              </template>
+              <template x-if="!(report.open_questions || []).length">
+                <div class="card p-5 body-text text-ink-muted">
+                  No standalone list was returned for this run. Use the per-finding questions under <strong>Top red flags</strong>
+                  and the quantitative prompts tied to <strong>Anomalies</strong> above.
+                </div>
+              </template>
             </section>
 
             <!-- FINANCIAL TABLE -->
             <section id="financials" x-show="(report.financial_table || []).length">
               <h2 class="display text-[42px] font-bold mb-1">Annual financials</h2>
-              <div class="eyebrow mb-6">08 · From XBRL</div>
+              <div class="eyebrow mb-6">10 · From XBRL</div>
               <div class="card overflow-x-auto">
                 <table class="w-full text-sm mono">
                   <thead class="text-[11px] uppercase tracking-wider text-ink-muted bg-paper-tint border-b hl">
@@ -1122,8 +1273,15 @@
             <!-- CONCLUSION -->
             <section id="conclusion">
               <h2 class="display text-[42px] font-bold mb-1">Conclusion</h2>
-              <div class="eyebrow mb-6">09 · Cautionary framing</div>
-              <p class="lead" x-text="report.conclusion"></p>
+              <div class="eyebrow mb-6">11 · Why caution / deeper review may be warranted</div>
+              <div class="card p-6">
+                <p class="lead whitespace-pre-wrap text-ink-body" x-text="conclusionText()"></p>
+                <div class="mt-5 text-[12px] text-ink-muted leading-relaxed">
+                  This conclusion intentionally stops short of a recommendation. It frames why the company may warrant further diligence,
+                  not whether to take a position. Treat every sentence as a hypothesis that must be reconciled with the cited filings under
+                  Evidence summary above.
+                </div>
+              </div>
             </section>
 
             <!-- LIMITATIONS -->
@@ -1240,16 +1398,18 @@ function muddyApp() {
     },
 
     toc: [
-      { id: 'snapshot',    label: 'Snapshot' },
-      { id: 'anomalies',   label: 'Anomalies' },
-      { id: 'forensic',    label: 'Forensic scores' },
-      { id: 'redflags',    label: 'Red flags' },
-      { id: 'claims',      label: 'Claims vs evidence' },
-      { id: 'categories',  label: 'By category' },
-      { id: 'questions',   label: 'Open questions' },
-      { id: 'financials',  label: 'Financials' },
-      { id: 'conclusion',  label: 'Conclusion' },
-      { id: 'limitations', label: 'Limitations' },
+      { id: 'snapshot',    label: '01 · Snapshot' },
+      { id: 'thesis',      label: '02 · Core thesis' },
+      { id: 'anomalies',   label: '03 · Anomalies' },
+      { id: 'forensic',    label: '04 · Forensic scores' },
+      { id: 'redflags',    label: '05 · Red flags' },
+      { id: 'evidence',    label: '06 · Evidence summary' },
+      { id: 'claims',      label: '07 · Claims vs evidence' },
+      { id: 'categories',  label: '08 · By category' },
+      { id: 'questions',   label: '09 · Open questions' },
+      { id: 'financials',  label: '10 · Financials' },
+      { id: 'conclusion',  label: '11 · Conclusion' },
+      { id: 'limitations', label: '12 · Limitations' },
     ],
 
     async init() {
@@ -1384,6 +1544,46 @@ function muddyApp() {
       return 'text-ink';
     },
 
+    isHeuristicMode() {
+      const p = (this.report?.provider_info?.provider || '').toLowerCase();
+      return !p || p === 'heuristic';
+    },
+    providerLabel() {
+      const p = (this.report?.provider_info?.provider || '').toLowerCase();
+      const m = (this.report?.provider_info?.model || '').toLowerCase();
+      if (!p || p === 'heuristic') return 'heuristic mode';
+      return m ? `${p} · ${m}` : p;
+    },
+
+    fraudModelLabel(fc) {
+      if (!fc) return 'n/a';
+      const m = fc.model;
+      if (typeof m === 'string') return m;
+      if (m && typeof m === 'object') return m.model || m.provider || 'n/a';
+      return 'n/a';
+    },
+
+    fraudDifferentiators(fc) {
+      if (!fc) return '';
+      const r = (fc.reasoning || '').trim();
+      const d = (fc.differentiators || '').trim();
+      if (!d || d === r) return '';
+      return d;
+    },
+
+    conclusionText() {
+      const c = (this.report?.conclusion || '').trim();
+      if (c) return c;
+      const t = (this.report?.core_thesis || '').trim();
+      if (t) return t + ' This note is for diligence only; verify every citation in the original filing.';
+      return 'No conclusion block was produced for this run. Use the core thesis and red-flag sections above, and treat all machine output as unverified.';
+    },
+
+    hasGrossMarginData() {
+      const tbl = this.report?.financial_table || [];
+      return tbl.some(r => r && r.revenue != null && r.gross_profit != null);
+    },
+
     fmtNum(v) {
       if (v === null || v === undefined) return '—';
       const a = Math.abs(v);
@@ -1423,6 +1623,14 @@ function muddyApp() {
       const c = this.report?.concerns_by_category || {};
       return Object.entries(c).filter(([_, v]) => Array.isArray(v) && v.length > 0);
     },
+    requiredCategoryOrder() {
+      return ['accounting', 'governance', 'disclosure', 'operations'];
+    },
+    optionalCategoryEntries() {
+      const required = new Set(this.requiredCategoryOrder());
+      const c = this.report?.concerns_by_category || {};
+      return Object.entries(c).filter(([k, v]) => !required.has(k) && Array.isArray(v) && v.length > 0);
+    },
 
     downloadJSON() {
       const blob = new Blob([JSON.stringify(this.report, null, 2)], { type: 'application/json' });
@@ -1440,6 +1648,7 @@ function muddyApp() {
       const tbl = this.report?.financial_table || [];
       if (!tbl.length || typeof Plotly === 'undefined') return;
 
+      const num = (v) => (v === null || v === undefined || v === '') ? null : Number(v);
       const years = tbl.map(r => r.year);
       const layoutBase = {
         paper_bgcolor: 'transparent',
@@ -1452,27 +1661,40 @@ function muddyApp() {
       };
       const config = { displayModeBar: false, responsive: true };
 
-      if (document.getElementById('chart-rev-ar')) {
+      const revEl = document.getElementById('chart-rev-ar');
+      if (revEl) {
+        Plotly.purge(revEl);
+        const revY = tbl.map(r => num(r.revenue));
+        const arY = tbl.map(r => num(r.accounts_receivable));
         Plotly.newPlot('chart-rev-ar', [
-          { x: years, y: tbl.map(r => r.revenue || null), type: 'bar', name: 'Revenue', marker: { color: '#1d4ed8' } },
-          { x: years, y: tbl.map(r => r.accounts_receivable || null), type: 'bar', name: 'Accounts receivable', marker: { color: '#b45309' } },
+          { x: years, y: revY, type: 'bar', name: 'Revenue', marker: { color: '#1d4ed8' } },
+          { x: years, y: arY, type: 'bar', name: 'Accounts receivable', marker: { color: '#b45309' } },
         ], { ...layoutBase, title: { text: 'Revenue vs Accounts Receivable', font: { color: '#0a0a0a', size: 14, family: 'Source Serif 4' } }, barmode: 'group' }, config);
       }
 
-      if (document.getElementById('chart-ni-cfo')) {
+      const niEl = document.getElementById('chart-ni-cfo');
+      if (niEl) {
+        Plotly.purge(niEl);
         Plotly.newPlot('chart-ni-cfo', [
-          { x: years, y: tbl.map(r => r.net_income || null), type: 'scatter', mode: 'lines+markers', name: 'Net income', line: { color: '#b91c1c', width: 3 } },
-          { x: years, y: tbl.map(r => r.operating_cash_flow || null), type: 'scatter', mode: 'lines+markers', name: 'Operating cash flow', line: { color: '#047857', width: 3 } },
+          { x: years, y: tbl.map(r => num(r.net_income)), type: 'scatter', mode: 'lines+markers', name: 'Net income', line: { color: '#b91c1c', width: 3 } },
+          { x: years, y: tbl.map(r => num(r.operating_cash_flow)), type: 'scatter', mode: 'lines+markers', name: 'Operating cash flow', line: { color: '#047857', width: 3 } },
         ], { ...layoutBase, title: { text: 'Net Income vs Operating Cash Flow', font: { color: '#0a0a0a', size: 14, family: 'Source Serif 4' } } }, config);
       }
 
-      const gm = tbl.map(r => (r.revenue && r.gross_profit) ? (r.gross_profit / r.revenue * 100) : null);
-      if (document.getElementById('chart-margin') && gm.some(v => v !== null)) {
-        Plotly.newPlot('chart-margin', [
-          { x: years, y: gm, type: 'scatter', mode: 'lines+markers', name: 'Gross margin %', line: { color: '#6d28d9', width: 3 } },
-        ], { ...layoutBase, title: { text: 'Gross margin trend (%)', font: { color: '#0a0a0a', size: 14, family: 'Source Serif 4' } } }, config);
-      } else if (document.getElementById('chart-margin')) {
-        document.getElementById('chart-margin').innerHTML = '';
+      const gmEl = document.getElementById('chart-margin');
+      if (gmEl) {
+        Plotly.purge(gmEl);
+        const gm = tbl.map(r => {
+          const rev = num(r.revenue);
+          const gp = num(r.gross_profit);
+          if (rev === null || gp === null || rev === 0) return null;
+          return (gp / rev) * 100;
+        });
+        if (gm.some(v => v !== null)) {
+          Plotly.newPlot('chart-margin', [
+            { x: years, y: gm, type: 'scatter', mode: 'lines+markers', name: 'Gross margin %', line: { color: '#6d28d9', width: 3 } },
+          ], { ...layoutBase, title: { text: 'Gross margin trend (%)', font: { color: '#0a0a0a', size: 14, family: 'Source Serif 4' } } }, config);
+        }
       }
     },
 

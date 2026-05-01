@@ -68,6 +68,8 @@ class Report(BaseModel):
     risk_grade: dict = Field(default_factory=dict)
     fraud_classifier: dict = Field(default_factory=dict)
     provider_info: dict = Field(default_factory=dict)
+    sources_analyzed: list[dict] = Field(default_factory=list)
+    evidence_index: list[dict] = Field(default_factory=list)
 
 
 class PipelineResult(BaseModel):

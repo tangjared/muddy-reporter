@@ -37,7 +37,7 @@ FINDINGS_SCHEMA_HINT = """\
       "confidence": "MUST be EXACTLY one of: low | medium | high",
       "claim_or_observation": "what specifically you noticed, with the relevant numbers or names",
       "why_it_matters": "the bearish/cautionary implication (1-2 sentences)",
-      "counterpoints_or_alt_explanations": ["benign explanations a defender of the company would offer"],
+      "counterpoints_or_alt_explanations": ["REQUIRED if label is fact or inference: at least one plausible innocent explanation management would offer; if label is question, may be empty"],
       "open_questions": ["specific questions you'd want management to answer"],
       "citations": [
         {"doc_id": "DOC_ID exactly as provided", "url": "SOURCE_URL exactly as provided", "excerpt": "VERBATIM quote from the excerpt"}
@@ -81,8 +81,8 @@ REPORT_SCHEMA_HINT = """\
     "regulatory_legal": ["short bullet"],
     "other": ["short bullet"]
   },
-  "open_questions": ["pointed, specific questions for management or for further diligence"],
-  "conclusion": "2-4 sentences. Cautionary framing only. Do NOT recommend a trade. Reiterate verification needs.",
+  "open_questions": ["REQUIRED: at least 3 non-overlapping, specific questions for management or counsel. If evidence is thin, ask what records would verify or falsify the concern."],
+  "conclusion": "REQUIRED: 2-4 sentences; never an empty string. Cautionary framing only. Do NOT recommend a trade. Name the top verification priority.",
   "limitations": ["honest limitations of this automated analysis"]
 }
 """
