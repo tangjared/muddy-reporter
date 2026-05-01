@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en" class="dark">
+<html lang="en">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -8,7 +8,7 @@
 
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600;8..60,700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Source+Serif+4:opsz,wght@8..60,400;8..60,500;8..60,600;8..60,700;8..60,800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
 
   <script src="https://cdn.tailwindcss.com"></script>
   <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
@@ -24,35 +24,41 @@
             mono: ['"JetBrains Mono"', 'ui-monospace', 'SFMono-Regular', 'Menlo'],
           },
           colors: {
+            paper: {
+              DEFAULT: '#fafaf7',  // page background, warm off-white
+              deep:    '#f3f1ec',  // section dividers
+              card:    '#ffffff',  // cards
+              tint:    '#f8f6f1',
+            },
             ink: {
-              950: '#08080a',
-              900: '#0d0d10',
-              850: '#131318',
-              800: '#181820',
-              700: '#22222b',
-              600: '#2c2c37',
-              500: '#3a3a45',
+              DEFAULT: '#0a0a0a',  // headlines (near-black)
+              body:    '#272525',  // body text (rich dark gray)
+              muted:   '#6e6a64',  // metadata
+              dim:     '#a8a39c',  // dimmest
+            },
+            line: {
+              DEFAULT: '#e7e3da',  // hairline
+              strong:  '#d3cdc0',
             },
             blood: {
-              500: '#ef4444',
-              600: '#dc2626',
-              700: '#b91c1c',
+              500: '#b91c1c',
+              600: '#991b1b',
+              700: '#7f1d1d',
             },
             amber2: {
-              400: '#fbbf24',
-              500: '#f59e0b',
+              500: '#b45309',
+              600: '#92400e',
             },
             azure: {
-              400: '#60a5fa',
-              500: '#3b82f6',
+              500: '#1d4ed8',
+              600: '#1e3a8a',
             },
             jade: {
-              400: '#34d399',
-              500: '#10b981',
+              500: '#047857',
+              600: '#065f46',
             },
             violet2: {
-              400: '#c084fc',
-              500: '#a855f7',
+              500: '#6d28d9',
             },
           },
         },
@@ -61,107 +67,182 @@
   </script>
 
   <style>
-    :root {
-      color-scheme: dark;
-    }
-
+    :root { color-scheme: light; }
     html, body {
-      background: #08080a;
-      color: #fafafa;
+      background: #fafaf7;
+      color: #272525;
       font-family: Inter, ui-sans-serif, system-ui;
       -webkit-font-smoothing: antialiased;
       text-rendering: optimizeLegibility;
     }
 
-    /* subtle film grain so the giant black backgrounds don't feel flat */
+    /* paper grain — barely-there tan noise */
     body::before {
       content: '';
       position: fixed; inset: 0;
-      background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 0.04 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+      background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='200' height='200'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0.4  0 0 0 0 0.35  0 0 0 0 0.27  0 0 0 0.04 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
       pointer-events: none;
       z-index: 0;
-      mix-blend-mode: overlay;
+      mix-blend-mode: multiply;
+      opacity: 0.5;
     }
 
-    /* radial vignette behind the hero */
+    /* subtle paper edge highlight on hero */
     .hero-bg {
       background:
-        radial-gradient(1200px 600px at 50% -10%, rgba(220, 38, 38, 0.18), transparent 60%),
-        radial-gradient(800px 400px at 50% 90%, rgba(96, 165, 250, 0.10), transparent 70%);
+        radial-gradient(900px 480px at 50% -10%, rgba(185, 28, 28, 0.06), transparent 70%),
+        radial-gradient(700px 400px at 50% 110%, rgba(29, 78, 216, 0.04), transparent 70%);
     }
 
+    /* TYPOGRAPHY — strong contrast between title and body */
     .display {
       font-family: 'Source Serif 4', ui-serif, Georgia;
-      font-feature-settings: 'ss01', 'ss02';
-      letter-spacing: -0.02em;
-      line-height: 1.05;
+      font-feature-settings: 'ss01', 'ss02', 'lnum';
+      font-optical-sizing: auto;
+      letter-spacing: -0.025em;
+      line-height: 1.02;
+      color: #0a0a0a;
     }
-
+    .display-italic {
+      font-family: 'Source Serif 4', ui-serif, Georgia;
+      font-style: italic;
+    }
+    .lead {
+      font-family: 'Source Serif 4', ui-serif, Georgia;
+      font-weight: 400;
+      font-size: 1.4rem;
+      line-height: 1.5;
+      color: #1a1816;
+    }
+    .body-text {
+      font-family: Inter, ui-sans-serif;
+      font-weight: 400;
+      font-size: 0.97rem;
+      line-height: 1.65;
+      color: #272525;
+    }
+    .eyebrow {
+      font-family: Inter, ui-sans-serif;
+      font-weight: 500;
+      font-size: 11px;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: #6e6a64;
+    }
     .mono { font-family: 'JetBrains Mono', ui-monospace; }
 
-    /* hairline / reverse-hairline borders */
-    .hl  { border-color: rgba(250, 250, 250, 0.08); }
-    .hl2 { border-color: rgba(250, 250, 250, 0.14); }
+    /* hairline borders (light) */
+    .hl  { border-color: rgba(10, 10, 10, 0.08); }
+    .hl2 { border-color: rgba(10, 10, 10, 0.18); }
 
-    /* nice scrollbars on dark */
+    /* light scrollbars */
     ::-webkit-scrollbar { width: 10px; height: 10px; }
-    ::-webkit-scrollbar-thumb { background: #2c2c37; border-radius: 8px; }
-    ::-webkit-scrollbar-thumb:hover { background: #3a3a45; }
+    ::-webkit-scrollbar-thumb { background: #cdc7b8; border-radius: 8px; }
+    ::-webkit-scrollbar-thumb:hover { background: #b8b1a0; }
     ::-webkit-scrollbar-track { background: transparent; }
-
-    /* severity bar */
-    .sev-bar { height: 4px; border-radius: 999px; background: rgba(250,250,250,0.08); }
-    .sev-bar > span { display: block; height: 100%; border-radius: 999px; }
-
-    /* citation quote bar */
-    .cite-quote {
-      border-left: 2px solid rgba(96, 165, 250, 0.55);
-      padding: 8px 12px;
-      background: rgba(96, 165, 250, 0.05);
-      border-radius: 4px;
-      font-size: 13px;
-      color: #d4d4d8;
-      white-space: pre-wrap;
-      word-break: break-word;
-    }
 
     /* TOC active state */
     .toc-link[data-active="true"] {
-      color: #fafafa;
-      border-left-color: #ef4444;
+      color: #0a0a0a;
+      border-left-color: #b91c1c;
+      font-weight: 500;
     }
 
-    /* tiny pulsing dot for "live" / loading */
+    /* live red pulse */
     .pulse-dot {
       width: 8px; height: 8px; border-radius: 999px;
-      background: #ef4444; box-shadow: 0 0 0 0 rgba(239,68,68,0.6);
+      background: #b91c1c; box-shadow: 0 0 0 0 rgba(185,28,28,0.55);
       animation: pulse 1.6s infinite;
     }
     @keyframes pulse {
-      0%   { box-shadow: 0 0 0 0 rgba(239,68,68,0.55); }
-      70%  { box-shadow: 0 0 0 12px rgba(239,68,68,0); }
-      100% { box-shadow: 0 0 0 0 rgba(239,68,68,0); }
+      0%   { box-shadow: 0 0 0 0 rgba(185,28,28,0.55); }
+      70%  { box-shadow: 0 0 0 10px rgba(185,28,28,0); }
+      100% { box-shadow: 0 0 0 0 rgba(185,28,28,0); }
     }
 
-    /* subtle gradient border for hero CTA */
+    /* citation quote bar — subtle blue */
+    .cite-quote {
+      border-left: 3px solid #1d4ed8;
+      padding: 10px 14px;
+      background: #f5f7fb;
+      border-radius: 4px;
+      font-size: 13px;
+      color: #1f2937;
+      white-space: pre-wrap;
+      word-break: break-word;
+      font-family: 'JetBrains Mono', ui-monospace;
+    }
+
+    /* big numbered list for red flags */
+    .flag-num {
+      font-family: 'Source Serif 4', ui-serif;
+      font-weight: 700;
+      font-size: 4.5rem;
+      line-height: 1;
+      color: #c8c4ba;
+      letter-spacing: -0.03em;
+    }
+
+    /* subtle gradient outline on hero CTA */
     .grad-border {
       position: relative;
+      transition: transform 0.2s ease;
     }
     .grad-border::before {
       content: '';
-      position: absolute; inset: 0; border-radius: 14px; padding: 1px;
-      background: linear-gradient(135deg, rgba(239,68,68,0.55), rgba(96,165,250,0.35) 50%, rgba(168,85,247,0.45));
+      position: absolute; inset: 0; border-radius: 14px; padding: 1.5px;
+      background: linear-gradient(135deg, #b91c1c, #1d4ed8 60%, #6d28d9);
       -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
       -webkit-mask-composite: xor; mask-composite: exclude;
       pointer-events: none;
+      opacity: 0.6;
+    }
+    .grad-border:focus-within::before { opacity: 1; }
+    .grad-border:focus-within { transform: translateY(-1px); }
+
+    /* logo container — clean ring */
+    .logo-ring {
+      width: 64px; height: 64px;
+      background: #fff;
+      border: 1px solid rgba(0,0,0,0.10);
+      border-radius: 14px;
+      display: flex; align-items: center; justify-content: center;
+      overflow: hidden;
+      box-shadow: 0 1px 0 rgba(0,0,0,0.03);
+    }
+    .logo-ring img { width: 80%; height: 80%; object-fit: contain; }
+    .logo-fallback {
+      font-family: 'Source Serif 4', ui-serif;
+      font-weight: 700;
+      font-size: 1.6rem;
+      color: #6e6a64;
     }
 
-    /* print: when user prints, hide nav and chrome */
+    /* card surface */
+    .card {
+      background: #fff;
+      border: 1px solid #e7e3da;
+      border-radius: 14px;
+    }
+    .card-tinted {
+      background: #f8f6f1;
+      border: 1px solid #e7e3da;
+      border-radius: 14px;
+    }
+
+    /* "why it matters" block */
+    .matters-block {
+      border-left: 3px solid #b91c1c;
+      padding: 8px 14px;
+      background: #fef7f7;
+      border-radius: 0 6px 6px 0;
+    }
+
     @media print {
       body::before { display: none; }
       .no-print { display: none !important; }
-      body { background: #fff; color: #0a0a0a; }
-      .hl, .hl2 { border-color: rgba(0,0,0,0.12); }
+      .hl, .hl2 { border-color: rgba(0,0,0,0.18); }
+      .card { box-shadow: none; }
     }
   </style>
 </head>
@@ -170,9 +251,9 @@
 <div x-data="muddyApp()" x-init="init()" class="relative z-10 min-h-screen">
 
   <!-- ============================================================
-       NAV BAR (always visible)
+       NAV BAR
        ============================================================ -->
-  <header class="no-print sticky top-0 z-30 backdrop-blur bg-ink-950/80 border-b hl">
+  <header class="no-print sticky top-0 z-30 backdrop-blur bg-paper/85 border-b hl">
     <div class="max-w-7xl mx-auto px-6 h-14 flex items-center justify-between">
       <button @click="goLanding()" class="flex items-center gap-2.5 group">
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" class="text-blood-500">
@@ -183,14 +264,14 @@
         <span class="display text-[17px] font-semibold tracking-tight">Muddy <span class="text-blood-500">Reporter</span></span>
       </button>
       <div class="flex items-center gap-3">
-        <span class="hidden sm:flex items-center gap-1.5 mono text-[11px] uppercase tracking-wider text-zinc-500">
+        <span class="hidden sm:flex items-center gap-1.5 mono text-[11px] uppercase tracking-wider text-ink-muted">
           <span class="inline-block w-1.5 h-1.5 rounded-full"
                 :class="provider.provider === 'gemini' ? 'bg-jade-500' : provider.provider === 'openai' ? 'bg-jade-500' : 'bg-amber2-500'"></span>
           <span x-text="provider.provider || '—'"></span>
-          <span class="text-zinc-700">·</span>
+          <span class="text-line-strong">·</span>
           <span x-text="provider.model || ''"></span>
         </span>
-        <a href="/api/docs" target="_blank" class="hidden sm:inline-block text-xs text-zinc-500 hover:text-zinc-200">API</a>
+        <a href="/api/docs" target="_blank" class="hidden sm:inline-block text-xs text-ink-muted hover:text-ink">API</a>
       </div>
     </div>
   </header>
@@ -199,39 +280,42 @@
        LANDING VIEW
        ============================================================ -->
   <main x-show="view === 'landing'" class="hero-bg">
-    <section class="max-w-5xl mx-auto px-6 pt-24 pb-20 text-center">
-      <div class="inline-flex items-center gap-2 mono text-[11px] uppercase tracking-[0.18em] text-zinc-500 mb-6 border hl rounded-full px-3 py-1">
+    <section class="max-w-5xl mx-auto px-6 pt-28 pb-20 text-center">
+      <div class="inline-flex items-center gap-2 mono text-[11px] uppercase tracking-[0.2em] text-ink-muted mb-7 border hl rounded-full px-3 py-1 bg-white">
         <span class="pulse-dot"></span>
         Forensic Research · Public Sources Only
       </div>
 
-      <h1 class="display text-5xl sm:text-6xl md:text-7xl font-semibold leading-[0.95] mb-6">
-        Automated <span class="italic text-blood-500">short-seller</span><br/>
+      <h1 class="display text-[64px] sm:text-[80px] md:text-[88px] font-bold mb-7">
+        Automated <span class="display-italic font-semibold text-blood-500">short-seller</span><br/>
         research notes.
       </h1>
-      <p class="text-zinc-400 text-lg max-w-2xl mx-auto mb-12 leading-relaxed">
-        Pulls SEC filings + XBRL financials, runs deterministic forensic anomaly checks,
-        and drafts a citation-backed Muddy&nbsp;Waters-style investigative note —
+      <p class="lead max-w-2xl mx-auto mb-12 text-ink-body">
+        Type a ticker. We pull SEC filings, run forensic anomaly checks against XBRL data,
+        and draft a citation-backed Muddy&nbsp;Waters-style investigative note —
         with every claim graded for confidence and tied to a verbatim source quote.
       </p>
 
-      <!-- Big input -->
-      <form @submit.prevent="generate()" class="grad-border max-w-2xl mx-auto rounded-2xl">
-        <div class="flex items-center bg-ink-900/80 backdrop-blur rounded-2xl px-5 py-3 gap-3">
-          <span class="mono text-[11px] uppercase tracking-widest text-zinc-500 hidden sm:block">Ticker</span>
+      <!-- Big input — radically simple -->
+      <form @submit.prevent="generate()" class="grad-border max-w-2xl mx-auto rounded-2xl bg-white">
+        <div class="flex items-center px-5 py-3.5 gap-3">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" class="text-ink-dim shrink-0">
+            <circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/>
+          </svg>
           <input
             x-model="ticker"
             @input="ticker = $event.target.value.toUpperCase()"
             type="text"
-            placeholder="LKNCY, NKLA, AAPL, or CIK…"
+            placeholder="Enter ticker (e.g. LKNCY, AAPL, NKLA)"
             autocomplete="off"
-            class="flex-1 bg-transparent outline-none border-0 text-2xl mono placeholder-zinc-600 py-1.5"
+            autofocus
+            class="flex-1 bg-transparent outline-none border-0 text-2xl mono placeholder-ink-dim py-1.5 text-ink"
             :disabled="isLoading"
           />
           <button
             type="submit"
             :disabled="isLoading || !ticker.trim()"
-            class="bg-blood-600 hover:bg-blood-500 disabled:bg-ink-700 disabled:text-zinc-500 text-white font-medium px-5 py-2.5 rounded-xl transition flex items-center gap-2"
+            class="bg-blood-600 hover:bg-blood-500 disabled:bg-line disabled:text-ink-dim text-white font-medium px-5 py-2.5 rounded-xl transition flex items-center gap-2"
           >
             <span>Investigate</span>
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
@@ -239,45 +323,33 @@
         </div>
       </form>
 
-      <div class="mt-4 mono text-[11px] uppercase tracking-wider text-zinc-600">
-        Avg. analysis time: 30–60 seconds &nbsp;·&nbsp; Free Gemini key recommended
-      </div>
-
-      <!-- Preset tickers -->
-      <div class="mt-14">
-        <div class="mono text-[11px] uppercase tracking-[0.18em] text-zinc-500 mb-4">Featured cases</div>
-        <div class="grid sm:grid-cols-2 lg:grid-cols-4 gap-3 text-left">
-          <template x-for="p in presets" :key="p.ticker">
-            <button @click="ticker = p.ticker; generate()"
-              class="group bg-ink-900/60 hover:bg-ink-850 border hl hover:border-blood-700/50 rounded-xl p-4 transition text-left">
-              <div class="flex items-baseline justify-between mb-1">
-                <span class="mono text-base font-semibold tracking-tight" x-text="p.ticker"></span>
-                <span class="mono text-[10px] uppercase tracking-wider px-1.5 py-0.5 rounded"
-                      :class="p.kind === 'short' ? 'text-blood-500 bg-blood-600/10 border border-blood-700/30' : 'text-jade-400 bg-jade-500/10 border border-jade-500/30'"
-                      x-text="p.kind === 'short' ? 'short target' : 'control'"></span>
-              </div>
-              <div class="text-sm text-zinc-300 font-medium" x-text="p.name"></div>
-              <div class="text-xs text-zinc-500 mt-1" x-text="p.note"></div>
-            </button>
-          </template>
-        </div>
+      <!-- Preset tickers as quick examples -->
+      <div class="mt-7 flex flex-wrap justify-center gap-2 text-sm">
+        <span class="text-ink-muted self-center mr-1">Try:</span>
+        <template x-for="p in presets" :key="p.ticker">
+          <button @click="ticker = p.ticker; generate()"
+            class="px-3 py-1.5 mono text-[12px] uppercase tracking-wider rounded-full border hl bg-white hover:bg-paper-tint hover:border-blood-700/40 transition flex items-center gap-1.5">
+            <span x-text="p.ticker"></span>
+            <span class="text-ink-dim normal-case tracking-normal" x-text="'· ' + p.name"></span>
+          </button>
+        </template>
       </div>
 
       <!-- Recent reports -->
-      <div class="mt-14" x-show="recentReports.length > 0">
-        <div class="mono text-[11px] uppercase tracking-[0.18em] text-zinc-500 mb-4">Recent reports on this machine</div>
+      <div class="mt-16" x-show="recentReports.length > 0">
+        <div class="eyebrow mb-4">Recent on this server</div>
         <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-3 text-left">
           <template x-for="r in recentReports" :key="r.ticker">
             <button @click="loadCached(r.ticker)"
-              class="bg-ink-900/40 hover:bg-ink-850 border hl rounded-xl p-4 transition text-left">
+              class="card hover:border-line-strong transition p-4 text-left">
               <div class="flex items-baseline justify-between mb-1">
                 <span class="mono text-base font-semibold" x-text="r.ticker"></span>
-                <span class="mono text-[10px] text-zinc-500" x-text="formatTimestamp(r.generated_at_iso)"></span>
+                <span class="mono text-[10px] text-ink-muted" x-text="formatTimestamp(r.generated_at_iso)"></span>
               </div>
-              <div class="text-sm text-zinc-300" x-text="r.company_name || '—'"></div>
-              <div class="text-xs text-zinc-500 mt-1.5 flex gap-3">
-                <span><span class="text-blood-500" x-text="r.red_flags"></span> red flags</span>
-                <span><span class="text-amber2-500" x-text="r.anomalies"></span> anomalies</span>
+              <div class="text-sm text-ink" x-text="r.company_name || '—'"></div>
+              <div class="text-xs text-ink-muted mt-1.5 flex gap-3">
+                <span><span class="text-blood-500 font-medium" x-text="r.red_flags"></span> red flags</span>
+                <span><span class="text-amber2-500 font-medium" x-text="r.anomalies"></span> anomalies</span>
               </div>
             </button>
           </template>
@@ -286,29 +358,29 @@
     </section>
 
     <!-- Methodology strip -->
-    <section class="border-t hl bg-ink-900/40">
+    <section class="border-t hl bg-paper-tint">
       <div class="max-w-6xl mx-auto px-6 py-16 grid md:grid-cols-3 gap-10">
         <div>
-          <div class="mono text-[11px] uppercase tracking-widest text-blood-500 mb-3">01 — Ingest</div>
-          <h3 class="display text-2xl font-semibold mb-2">Public filings, no shortcuts</h3>
-          <p class="text-zinc-400 text-sm leading-relaxed">SEC EDGAR 10-K / 10-Q / 8-K for US filers, 20-F / 6-K / F-1 for foreign issuers, plus the full XBRL company-facts feed.</p>
+          <div class="eyebrow text-blood-500 mb-3">01 — Ingest</div>
+          <h3 class="display text-[28px] font-semibold mb-2">Public filings, no shortcuts</h3>
+          <p class="body-text">SEC EDGAR 10-K / 10-Q / 8-K for US filers, 20-F / 6-K / F-1 for foreign issuers, plus the full XBRL company-facts feed.</p>
         </div>
         <div>
-          <div class="mono text-[11px] uppercase tracking-widest text-amber2-500 mb-3">02 — Detect</div>
-          <h3 class="display text-2xl font-semibold mb-2">Deterministic anomaly engine</h3>
-          <p class="text-zinc-400 text-sm leading-relaxed">Rule-based checks for AR vs revenue, NI vs operating cash flow, gross-margin jumps, inventory build, goodwill/equity ratio. No LLM in this layer.</p>
+          <div class="eyebrow text-amber2-500 mb-3">02 — Detect</div>
+          <h3 class="display text-[28px] font-semibold mb-2">Deterministic anomaly engine</h3>
+          <p class="body-text">Rule-based checks for AR vs revenue, NI vs operating cash flow, gross-margin jumps, inventory build, goodwill/equity ratio. No LLM in this layer.</p>
         </div>
         <div>
-          <div class="mono text-[11px] uppercase tracking-widest text-azure-500 mb-3">03 — Verify</div>
-          <h3 class="display text-2xl font-semibold mb-2">Citation gate</h3>
-          <p class="text-zinc-400 text-sm leading-relaxed">Every "fact" or "inference" must include a verbatim source quote. Findings without citations are auto-demoted to "open question".</p>
+          <div class="eyebrow text-azure-500 mb-3">03 — Verify</div>
+          <h3 class="display text-[28px] font-semibold mb-2">Citation gate</h3>
+          <p class="body-text">Every "fact" or "inference" must include a verbatim source quote. Findings without citations are auto-demoted to "open question".</p>
         </div>
       </div>
     </section>
 
     <!-- Disclaimer -->
     <footer class="border-t hl">
-      <div class="max-w-6xl mx-auto px-6 py-10 text-xs text-zinc-500 flex flex-wrap justify-between gap-4">
+      <div class="max-w-6xl mx-auto px-6 py-10 text-xs text-ink-muted flex flex-wrap justify-between gap-4">
         <span>© Muddy Reporter Prototype · Case study build · No fraud assertions, no investment advice.</span>
         <span>Outputs require human verification before use.</span>
       </div>
@@ -318,39 +390,40 @@
   <!-- ============================================================
        LOADING VIEW
        ============================================================ -->
-  <main x-show="view === 'loading'" class="min-h-[80vh] flex items-center justify-center px-6">
+  <main x-show="view === 'loading'" class="min-h-[80vh] flex items-center justify-center px-6 hero-bg">
     <div class="max-w-2xl w-full">
-      <div class="mono text-[11px] uppercase tracking-[0.18em] text-zinc-500 mb-3 flex items-center gap-2">
+      <div class="eyebrow mb-3 flex items-center gap-2">
         <span class="pulse-dot"></span>
         Investigating
       </div>
-      <h2 class="display text-4xl sm:text-5xl font-semibold mb-2">
+      <h2 class="display text-5xl sm:text-6xl font-bold mb-2">
         <span x-text="ticker"></span>
       </h2>
-      <p class="text-zinc-400 mb-8" x-text="progress.message || 'Initializing…'"></p>
+      <p class="body-text text-ink-muted mb-8" x-text="progress.message || 'Initializing…'"></p>
 
-      <div class="bg-ink-900 border hl rounded-xl p-6">
+      <div class="card p-6">
         <div class="flex items-center justify-between mb-3">
-          <span class="text-sm text-zinc-300" x-text="Math.round(progress.fraction * 100) + '%'"></span>
-          <span class="mono text-[11px] uppercase tracking-wider text-zinc-500" x-text="progress.stage || ''"></span>
+          <span class="text-sm text-ink-body font-medium" x-text="Math.round(progress.fraction * 100) + '%'"></span>
+          <span class="mono text-[11px] uppercase tracking-wider text-ink-muted" x-text="progress.stage || ''"></span>
         </div>
-        <div class="sev-bar mb-6">
-          <span :style="`width: ${Math.round(progress.fraction * 100)}%; background: linear-gradient(90deg, #ef4444, #f59e0b 70%, #60a5fa);`"></span>
+        <div class="h-1.5 rounded-full bg-line/60 mb-6 overflow-hidden">
+          <div class="h-full rounded-full transition-all duration-300"
+               :style="`width: ${Math.round(progress.fraction * 100)}%; background: linear-gradient(90deg, #b91c1c, #b45309 60%, #1d4ed8);`"></div>
         </div>
 
         <div class="space-y-1.5 max-h-72 overflow-y-auto">
           <template x-for="(line, i) in progress.log" :key="i">
-            <div class="text-xs mono text-zinc-400 flex gap-3">
-              <span class="text-zinc-600" x-text="line.time"></span>
+            <div class="text-xs mono text-ink-body flex gap-3">
+              <span class="text-ink-dim" x-text="line.time"></span>
               <span x-text="line.message"></span>
             </div>
           </template>
         </div>
       </div>
 
-      <div class="mt-4 text-xs text-zinc-500" x-show="progress.error">
+      <div class="mt-4 text-xs" x-show="progress.error">
         <div class="text-blood-500" x-text="'Error: ' + progress.error"></div>
-        <button @click="goLanding()" class="mt-3 text-zinc-300 hover:text-white underline underline-offset-2">← Back</button>
+        <button @click="goLanding()" class="mt-3 text-ink hover:text-blood-500 underline underline-offset-2">← Back</button>
       </div>
     </div>
   </main>
@@ -361,56 +434,69 @@
   <main x-show="view === 'report'" class="relative">
     <template x-if="report">
       <div>
-        <!-- Sticky action bar (no print) -->
-        <div class="no-print sticky top-14 z-20 bg-ink-950/85 backdrop-blur border-b hl">
+        <!-- Sticky action bar -->
+        <div class="no-print sticky top-14 z-20 bg-paper/85 backdrop-blur border-b hl">
           <div class="max-w-7xl mx-auto px-6 py-2 flex items-center justify-between text-sm">
-            <div class="flex items-center gap-2 text-zinc-400">
-              <button @click="goLanding()" class="hover:text-white">← New analysis</button>
-              <span class="text-zinc-700">/</span>
-              <span class="mono" x-text="report.ticker"></span>
+            <div class="flex items-center gap-2 text-ink-muted">
+              <button @click="goLanding()" class="hover:text-ink">← New analysis</button>
+              <span class="text-line-strong">/</span>
+              <span class="mono font-medium text-ink" x-text="report.ticker"></span>
             </div>
             <div class="flex items-center gap-2">
-              <button @click="downloadJSON()" class="text-xs text-zinc-400 hover:text-white border hl rounded px-3 py-1.5">Download JSON</button>
-              <button @click="openPrintable()" class="text-xs text-zinc-400 hover:text-white border hl rounded px-3 py-1.5">Open printable HTML</button>
-              <button @click="window.print()" class="text-xs bg-zinc-100 text-zinc-900 hover:bg-white rounded px-3 py-1.5 font-medium">Print / PDF</button>
+              <button @click="downloadJSON()" class="text-xs text-ink-muted hover:text-ink border hl rounded px-3 py-1.5 bg-white">JSON</button>
+              <button @click="openPrintable()" class="text-xs text-ink-muted hover:text-ink border hl rounded px-3 py-1.5 bg-white">Printable HTML</button>
+              <button @click="window.print()" class="text-xs bg-ink text-white hover:bg-black rounded px-3 py-1.5 font-medium">Print / PDF</button>
             </div>
           </div>
         </div>
 
-        <!-- HERO -->
+        <!-- HERO with logo -->
         <section class="hero-bg border-b hl">
           <div class="max-w-7xl mx-auto px-6 pt-14 pb-12">
-            <div class="mono text-[11px] uppercase tracking-[0.22em] text-zinc-500 mb-4 flex items-center gap-2">
+            <div class="eyebrow mb-5 flex items-center gap-2 flex-wrap">
               <span class="text-blood-500">●</span>
               Investigative Note
-              <span class="text-zinc-700">·</span>
+              <span class="text-line-strong">·</span>
               <span x-text="formatTimestamp(report.generated_at_iso)"></span>
-              <span class="text-zinc-700">·</span>
+              <span class="text-line-strong">·</span>
               <span x-text="(report.provider_info && report.provider_info.provider) || 'heuristic'"></span>
             </div>
-            <h1 class="display text-5xl sm:text-6xl font-semibold mb-3 leading-tight">
-              <span x-text="report.company_name || report.ticker"></span>
-              <span class="text-zinc-600 font-normal mono text-3xl ml-2" x-text="'(' + report.ticker + ')'"></span>
-            </h1>
 
-            <p class="display text-2xl text-zinc-200 leading-snug max-w-4xl mt-4" x-text="report.core_thesis"></p>
+            <!-- Logo + name row -->
+            <div class="flex items-start gap-5 mb-5">
+              <div class="logo-ring shrink-0">
+                <img :src="logoUrl(report.ticker)"
+                     :alt="report.ticker + ' logo'"
+                     @error="$el.style.display='none'; $el.nextElementSibling.style.display='flex'"
+                     loading="lazy" />
+                <div class="logo-fallback" style="display:none" x-text="(report.ticker || '').slice(0,2)"></div>
+              </div>
+              <div class="min-w-0 flex-1">
+                <h1 class="display text-5xl sm:text-[64px] font-bold leading-[1.02]">
+                  <span x-text="report.company_name || report.ticker"></span>
+                </h1>
+                <div class="mono text-2xl text-ink-muted mt-2 font-medium" x-text="report.ticker"></div>
+              </div>
+            </div>
 
-            <div class="mt-10 grid grid-cols-2 md:grid-cols-4 gap-4 max-w-3xl">
-              <div class="border hl rounded-lg p-4">
-                <div class="mono text-[10px] uppercase tracking-wider text-zinc-500">Filings</div>
-                <div class="display text-3xl font-semibold mt-1" x-text="(report.red_flags || []).reduce((s,f) => s + (f.citations?.length || 0), 0) > 0 ? sourcesCount() : sourcesCount()"></div>
+            <p class="lead max-w-4xl mt-7" x-text="report.core_thesis"></p>
+
+            <div class="mt-10 grid grid-cols-2 md:grid-cols-4 gap-3 max-w-3xl">
+              <div class="card p-4">
+                <div class="eyebrow">Filings</div>
+                <div class="display text-3xl font-bold mt-1" x-text="sourcesCount()"></div>
               </div>
-              <div class="border hl rounded-lg p-4">
-                <div class="mono text-[10px] uppercase tracking-wider text-zinc-500">Red flags</div>
-                <div class="display text-3xl font-semibold text-blood-500 mt-1" x-text="(report.red_flags || []).length"></div>
+              <div class="card p-4">
+                <div class="eyebrow">Red flags</div>
+                <div class="display text-3xl font-bold text-blood-500 mt-1" x-text="(report.red_flags || []).length"></div>
               </div>
-              <div class="border hl rounded-lg p-4">
-                <div class="mono text-[10px] uppercase tracking-wider text-zinc-500">Anomalies</div>
-                <div class="display text-3xl font-semibold text-amber2-500 mt-1" x-text="(report.financial_anomalies || []).length"></div>
+              <div class="card p-4">
+                <div class="eyebrow">Anomalies</div>
+                <div class="display text-3xl font-bold text-amber2-500 mt-1" x-text="(report.financial_anomalies || []).length"></div>
               </div>
-              <div class="border hl rounded-lg p-4">
-                <div class="mono text-[10px] uppercase tracking-wider text-zinc-500">Open Qs</div>
-                <div class="display text-3xl font-semibold text-azure-500 mt-1" x-text="(report.open_questions || []).length"></div>
+              <div class="card p-4">
+                <div class="eyebrow">Open Qs</div>
+                <div class="display text-3xl font-bold text-azure-500 mt-1" x-text="(report.open_questions || []).length"></div>
               </div>
             </div>
           </div>
@@ -422,11 +508,11 @@
           <!-- TOC -->
           <aside class="no-print hidden lg:block">
             <div class="sticky top-32">
-              <div class="mono text-[10px] uppercase tracking-[0.18em] text-zinc-500 mb-3">Contents</div>
+              <div class="eyebrow mb-3">Contents</div>
               <nav class="space-y-1 text-sm">
                 <template x-for="s in toc" :key="s.id">
                   <a :href="'#' + s.id"
-                     class="toc-link block border-l-2 border-transparent pl-3 py-1 text-zinc-500 hover:text-zinc-200 transition"
+                     class="toc-link block border-l-2 border-transparent pl-3 py-1 text-ink-muted hover:text-ink transition"
                      :data-active="activeSection === s.id"
                      x-text="s.label"></a>
                 </template>
@@ -438,122 +524,119 @@
 
             <!-- COMPANY SNAPSHOT -->
             <section id="snapshot">
-              <h2 class="display text-3xl font-semibold mb-1">Company snapshot</h2>
-              <div class="text-zinc-500 mono text-[11px] uppercase tracking-wider mb-6">01</div>
-              <dl class="grid sm:grid-cols-2 gap-x-8 gap-y-4 text-sm">
+              <h2 class="display text-[42px] font-bold mb-1">Company snapshot</h2>
+              <div class="eyebrow mb-6">01</div>
+              <dl class="grid sm:grid-cols-2 gap-x-10 gap-y-5 body-text">
                 <div>
-                  <dt class="text-zinc-500 text-xs uppercase tracking-wider mb-1">Business</dt>
-                  <dd class="text-zinc-200" x-text="report.snapshot?.business_description || '—'"></dd>
+                  <dt class="eyebrow mb-1">Business</dt>
+                  <dd x-text="report.snapshot?.business_description || '—'"></dd>
                 </div>
                 <div>
-                  <dt class="text-zinc-500 text-xs uppercase tracking-wider mb-1">Markets</dt>
-                  <dd class="text-zinc-200" x-text="report.snapshot?.where_it_operates || '—'"></dd>
+                  <dt class="eyebrow mb-1">Markets</dt>
+                  <dd x-text="report.snapshot?.where_it_operates || '—'"></dd>
                 </div>
                 <div>
-                  <dt class="text-zinc-500 text-xs uppercase tracking-wider mb-1">Revenue model</dt>
-                  <dd class="text-zinc-200" x-text="report.snapshot?.segments_or_revenue_model || '—'"></dd>
+                  <dt class="eyebrow mb-1">Revenue model</dt>
+                  <dd x-text="report.snapshot?.segments_or_revenue_model || '—'"></dd>
                 </div>
                 <div>
-                  <dt class="text-zinc-500 text-xs uppercase tracking-wider mb-1">Recent actions</dt>
-                  <dd class="text-zinc-200" x-text="report.snapshot?.recent_corporate_actions || '—'"></dd>
+                  <dt class="eyebrow mb-1">Recent actions</dt>
+                  <dd x-text="report.snapshot?.recent_corporate_actions || '—'"></dd>
                 </div>
               </dl>
             </section>
 
             <!-- ANOMALIES + CHARTS -->
             <section id="anomalies">
-              <h2 class="display text-3xl font-semibold mb-1">Quantitative anomalies</h2>
-              <div class="text-zinc-500 mono text-[11px] uppercase tracking-wider mb-6">02 · From XBRL · Deterministic</div>
+              <h2 class="display text-[42px] font-bold mb-1">Quantitative anomalies</h2>
+              <div class="eyebrow mb-6">02 · From XBRL · Deterministic</div>
 
               <template x-if="(report.financial_anomalies || []).length === 0">
-                <div class="border hl rounded-xl p-6 text-zinc-400 text-sm">
-                  <div class="text-jade-400 font-medium mb-1">No anomalies above thresholds.</div>
+                <div class="card p-6 body-text">
+                  <div class="text-jade-500 font-semibold mb-1 mono text-xs uppercase tracking-wider">No anomalies above thresholds</div>
                   This is a calibration signal — the system isn't fabricating concerns on a clean balance sheet.
                 </div>
               </template>
 
               <div class="space-y-3">
                 <template x-for="a in report.financial_anomalies || []" :key="a.title">
-                  <div class="border hl rounded-xl p-5 bg-ink-900/40">
+                  <div class="card p-5">
                     <div class="flex items-start justify-between gap-4 mb-2">
-                      <h3 class="font-semibold text-lg leading-snug" x-text="a.title"></h3>
-                      <span class="mono text-[10px] uppercase tracking-wider px-2 py-1 rounded shrink-0"
+                      <h3 class="display text-xl font-semibold leading-snug text-ink" x-text="a.title"></h3>
+                      <span class="mono text-[10px] uppercase tracking-wider px-2 py-1 rounded shrink-0 font-medium"
                             :class="severityClass(a.severity)"
                             x-text="a.severity"></span>
                     </div>
                     <div class="flex flex-wrap gap-1.5 mb-3">
-                      <span class="mono text-[10px] uppercase tracking-wider text-zinc-500 px-2 py-0.5 rounded bg-ink-800 border hl" x-text="a.category"></span>
-                      <span class="mono text-[10px] uppercase tracking-wider text-zinc-500 px-2 py-0.5 rounded bg-ink-800 border hl" x-text="a.metric"></span>
-                      <span class="mono text-[10px] uppercase tracking-wider text-azure-400 px-2 py-0.5 rounded bg-azure-500/10 border border-azure-500/30" x-text="a.value_str"></span>
+                      <span class="mono text-[10px] uppercase tracking-wider text-ink-muted px-2 py-0.5 rounded bg-paper-tint border hl" x-text="a.category"></span>
+                      <span class="mono text-[10px] uppercase tracking-wider text-ink-muted px-2 py-0.5 rounded bg-paper-tint border hl" x-text="a.metric"></span>
+                      <span class="mono text-[10px] uppercase tracking-wider text-azure-500 px-2 py-0.5 rounded bg-azure-500/8 border border-azure-500/30 font-medium" x-text="a.value_str"></span>
                     </div>
-                    <p class="text-sm text-zinc-300 leading-relaxed" x-text="a.description"></p>
+                    <p class="body-text" x-text="a.description"></p>
                   </div>
                 </template>
               </div>
 
               <!-- Plotly charts -->
               <div class="grid md:grid-cols-2 gap-4 mt-6" x-show="(report.financial_table || []).length > 1">
-                <div id="chart-rev-ar" class="border hl rounded-xl p-3 bg-ink-900/40 min-h-[280px]"></div>
-                <div id="chart-ni-cfo" class="border hl rounded-xl p-3 bg-ink-900/40 min-h-[280px]"></div>
-                <div id="chart-margin"  class="border hl rounded-xl p-3 bg-ink-900/40 min-h-[280px] md:col-span-2"></div>
+                <div id="chart-rev-ar" class="card p-3 min-h-[300px]"></div>
+                <div id="chart-ni-cfo" class="card p-3 min-h-[300px]"></div>
+                <div id="chart-margin"  class="card p-3 min-h-[300px] md:col-span-2"></div>
               </div>
             </section>
 
             <!-- TOP RED FLAGS -->
             <section id="redflags">
-              <h2 class="display text-3xl font-semibold mb-1">Top red flags</h2>
-              <div class="text-zinc-500 mono text-[11px] uppercase tracking-wider mb-6">03 · Citation-graded</div>
+              <h2 class="display text-[42px] font-bold mb-1">Top red flags</h2>
+              <div class="eyebrow mb-6">03 · Citation-graded</div>
 
               <template x-if="(report.red_flags || []).length === 0">
-                <div class="text-zinc-500 text-sm">No red flags surfaced.</div>
+                <div class="text-ink-muted body-text">No red flags surfaced.</div>
               </template>
 
               <div class="space-y-5">
                 <template x-for="(f, idx) in (report.red_flags || [])" :key="idx">
-                  <article class="border hl rounded-xl p-6 bg-ink-900/30">
+                  <article class="card p-6">
                     <div class="flex items-start gap-5">
-                      <div class="display text-5xl font-semibold text-zinc-700 shrink-0 leading-none mt-1"
-                           x-text="String(idx + 1).padStart(2,'0')"></div>
+                      <div class="flag-num shrink-0" x-text="String(idx + 1).padStart(2,'0')"></div>
                       <div class="flex-1 min-w-0">
-                        <div class="flex items-start justify-between gap-3 mb-2">
-                          <h3 class="display text-xl font-semibold leading-snug" x-text="f.title"></h3>
-                        </div>
+                        <h3 class="display text-2xl font-semibold leading-snug mb-2" x-text="f.title"></h3>
                         <div class="flex flex-wrap gap-1.5 mb-4">
-                          <span class="mono text-[10px] uppercase tracking-wider px-2 py-0.5 rounded"
+                          <span class="mono text-[10px] uppercase tracking-wider px-2 py-0.5 rounded font-medium"
                                 :class="labelClass(f.label)" x-text="f.label"></span>
-                          <span class="mono text-[10px] uppercase tracking-wider px-2 py-0.5 rounded border hl text-zinc-400 bg-ink-800"
+                          <span class="mono text-[10px] uppercase tracking-wider px-2 py-0.5 rounded border hl text-ink-muted bg-paper-tint"
                                 x-text="'confidence: ' + f.confidence"></span>
-                          <span class="mono text-[10px] uppercase tracking-wider px-2 py-0.5 rounded border hl text-zinc-400 bg-ink-800"
+                          <span class="mono text-[10px] uppercase tracking-wider px-2 py-0.5 rounded border hl text-ink-muted bg-paper-tint"
                                 x-text="(f.category || '').replace(/_/g,' ')"></span>
                         </div>
 
-                        <p class="text-zinc-200 leading-relaxed mb-3" x-text="f.claim_or_observation"></p>
+                        <p class="body-text mb-4" x-text="f.claim_or_observation"></p>
 
-                        <div class="border-l-2 border-blood-700/50 pl-4 py-1 my-4">
-                          <div class="mono text-[10px] uppercase tracking-wider text-blood-500 mb-1">Why it matters</div>
-                          <p class="text-sm text-zinc-300 italic" x-text="f.why_it_matters"></p>
+                        <div class="matters-block my-4">
+                          <div class="eyebrow text-blood-500 mb-1">Why it matters</div>
+                          <p class="body-text" x-text="f.why_it_matters"></p>
                         </div>
 
-                        <div x-data="{ open: false }" class="mt-3" x-show="(f.counterpoints_or_alt_explanations || []).length || (f.open_questions || []).length">
-                          <button @click="open = !open" class="mono text-[11px] uppercase tracking-wider text-zinc-500 hover:text-zinc-200 flex items-center gap-1.5">
+                        <div x-data="{ open: false }" class="mt-4" x-show="(f.counterpoints_or_alt_explanations || []).length || (f.open_questions || []).length">
+                          <button @click="open = !open" class="mono text-[11px] uppercase tracking-wider text-ink-muted hover:text-ink flex items-center gap-1.5">
                             <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
                                  :class="open ? 'rotate-90' : ''" class="transition">
                               <path d="M9 18l6-6-6-6"/>
                             </svg>
                             <span x-text="open ? 'Hide context' : 'Counterpoints & questions'"></span>
                           </button>
-                          <div x-show="open" x-collapse class="mt-3 grid sm:grid-cols-2 gap-4 text-sm">
+                          <div x-show="open" x-collapse class="mt-3 grid sm:grid-cols-2 gap-5 body-text">
                             <div x-show="(f.counterpoints_or_alt_explanations || []).length">
-                              <div class="text-xs uppercase tracking-wider text-zinc-500 mb-1.5">Counterpoints</div>
-                              <ul class="space-y-1 text-zinc-400 list-disc list-outside ml-4">
+                              <div class="eyebrow mb-1.5">Counterpoints</div>
+                              <ul class="space-y-1 list-disc list-outside ml-4">
                                 <template x-for="c in f.counterpoints_or_alt_explanations" :key="c">
                                   <li x-text="c"></li>
                                 </template>
                               </ul>
                             </div>
                             <div x-show="(f.open_questions || []).length">
-                              <div class="text-xs uppercase tracking-wider text-zinc-500 mb-1.5">Open questions</div>
-                              <ul class="space-y-1 text-zinc-400 list-disc list-outside ml-4">
+                              <div class="eyebrow mb-1.5">Open questions</div>
+                              <ul class="space-y-1 list-disc list-outside ml-4">
                                 <template x-for="q in f.open_questions" :key="q">
                                   <li x-text="q"></li>
                                 </template>
@@ -564,22 +647,22 @@
 
                         <!-- Citations -->
                         <div class="mt-5" x-show="(f.citations || []).length">
-                          <div class="mono text-[10px] uppercase tracking-wider text-zinc-500 mb-2 flex items-center gap-1.5">
+                          <div class="eyebrow mb-2 flex items-center gap-1.5">
                             <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.72-1.71"/></svg>
                             Citations
                           </div>
-                          <div class="space-y-2">
+                          <div class="space-y-2.5">
                             <template x-for="c in f.citations" :key="c.excerpt">
                               <div>
                                 <a :href="c.url" target="_blank" rel="noreferrer"
-                                   class="mono text-[11px] text-azure-400 hover:text-azure-500 hover:underline" x-text="c.doc_id"></a>
-                                <div class="cite-quote mt-1 mono" x-text="c.excerpt"></div>
+                                   class="mono text-[11px] text-azure-500 hover:underline" x-text="c.doc_id"></a>
+                                <div class="cite-quote mt-1" x-text="c.excerpt"></div>
                               </div>
                             </template>
                           </div>
                         </div>
 
-                        <div x-show="(f.citations || []).length === 0" class="mt-3 text-xs text-amber2-400">
+                        <div x-show="(f.citations || []).length === 0" class="mt-3 text-xs text-amber2-500">
                           ⚠ No citations attached — treat as low-confidence pending verification.
                         </div>
                       </div>
@@ -591,21 +674,21 @@
 
             <!-- MANAGEMENT vs EVIDENCE -->
             <section id="claims" x-show="(report.management_claims_vs_counterpoints || []).length">
-              <h2 class="display text-3xl font-semibold mb-1">Management claims vs evidence</h2>
-              <div class="text-zinc-500 mono text-[11px] uppercase tracking-wider mb-6">04 · Side-by-side</div>
+              <h2 class="display text-[42px] font-bold mb-1">Management vs evidence</h2>
+              <div class="eyebrow mb-6">04 · Side-by-side</div>
               <div class="space-y-4">
                 <template x-for="(row, i) in (report.management_claims_vs_counterpoints || [])" :key="i">
-                  <div class="border hl rounded-xl overflow-hidden">
-                    <div class="grid md:grid-cols-2 divide-y md:divide-y-0 md:divide-x divide-white/5">
-                      <div class="p-5 bg-ink-900/40">
-                        <div class="mono text-[10px] uppercase tracking-wider text-zinc-500 mb-2">Issuer claim</div>
-                        <p class="text-zinc-200 mb-3" x-text="row.claim"></p>
-                        <div class="cite-quote mono" x-show="row.source_excerpt" x-text="row.source_excerpt"></div>
+                  <div class="card overflow-hidden">
+                    <div class="grid md:grid-cols-2 divide-y md:divide-y-0 md:divide-x divide-line">
+                      <div class="p-5">
+                        <div class="eyebrow mb-2">Issuer claim</div>
+                        <p class="body-text mb-3" x-text="row.claim"></p>
+                        <div class="cite-quote" x-show="row.source_excerpt" x-text="row.source_excerpt"></div>
                       </div>
-                      <div class="p-5 bg-blood-600/[0.04]">
-                        <div class="mono text-[10px] uppercase tracking-wider text-blood-500 mb-2">Counter / inconsistency</div>
-                        <p class="text-zinc-200" x-text="row.counterpoint"></p>
-                        <span class="mt-3 inline-block mono text-[10px] uppercase tracking-wider px-2 py-0.5 rounded border hl text-zinc-400 bg-ink-800"
+                      <div class="p-5 bg-blood-500/[0.03]">
+                        <div class="eyebrow text-blood-500 mb-2">Counter / inconsistency</div>
+                        <p class="body-text" x-text="row.counterpoint"></p>
+                        <span class="mt-3 inline-block mono text-[10px] uppercase tracking-wider px-2 py-0.5 rounded border hl text-ink-muted bg-paper-tint"
                               x-text="'confidence: ' + (row.confidence || 'low')"></span>
                       </div>
                     </div>
@@ -616,13 +699,13 @@
 
             <!-- CONCERNS BY CATEGORY -->
             <section id="categories" x-show="hasCategoryConcerns()">
-              <h2 class="display text-3xl font-semibold mb-1">Concerns by category</h2>
-              <div class="text-zinc-500 mono text-[11px] uppercase tracking-wider mb-6">05</div>
+              <h2 class="display text-[42px] font-bold mb-1">Concerns by category</h2>
+              <div class="eyebrow mb-6">05</div>
               <div class="grid sm:grid-cols-2 gap-4">
                 <template x-for="[cat, items] in categoryEntries()" :key="cat">
-                  <div class="border hl rounded-xl p-5 bg-ink-900/30">
-                    <div class="mono text-[11px] uppercase tracking-wider text-zinc-400 mb-3" x-text="cat.replace(/_/g,' ')"></div>
-                    <ul class="text-sm text-zinc-300 space-y-1.5 list-disc list-outside ml-4">
+                  <div class="card p-5">
+                    <div class="eyebrow mb-3" x-text="cat.replace(/_/g,' ')"></div>
+                    <ul class="body-text space-y-1.5 list-disc list-outside ml-4">
                       <template x-for="it in items" :key="it">
                         <li x-text="it"></li>
                       </template>
@@ -634,12 +717,12 @@
 
             <!-- OPEN QUESTIONS -->
             <section id="questions" x-show="(report.open_questions || []).length">
-              <h2 class="display text-3xl font-semibold mb-1">Questions for management</h2>
-              <div class="text-zinc-500 mono text-[11px] uppercase tracking-wider mb-6">06</div>
-              <ol class="space-y-2 text-zinc-300">
+              <h2 class="display text-[42px] font-bold mb-1">Questions for management</h2>
+              <div class="eyebrow mb-6">06</div>
+              <ol class="space-y-3 body-text">
                 <template x-for="(q, i) in (report.open_questions || [])" :key="i">
-                  <li class="flex gap-3">
-                    <span class="mono text-zinc-600 shrink-0" x-text="String(i+1).padStart(2,'0')"></span>
+                  <li class="flex gap-4">
+                    <span class="mono text-ink-muted shrink-0 font-medium" x-text="String(i+1).padStart(2,'0')"></span>
                     <span x-text="q"></span>
                   </li>
                 </template>
@@ -648,11 +731,11 @@
 
             <!-- FINANCIAL TABLE -->
             <section id="financials" x-show="(report.financial_table || []).length">
-              <h2 class="display text-3xl font-semibold mb-1">Annual financials</h2>
-              <div class="text-zinc-500 mono text-[11px] uppercase tracking-wider mb-6">07 · From XBRL</div>
-              <div class="border hl rounded-xl overflow-x-auto">
+              <h2 class="display text-[42px] font-bold mb-1">Annual financials</h2>
+              <div class="eyebrow mb-6">07 · From XBRL</div>
+              <div class="card overflow-x-auto">
                 <table class="w-full text-sm mono">
-                  <thead class="text-[11px] uppercase tracking-wider text-zinc-500 bg-ink-900/60">
+                  <thead class="text-[11px] uppercase tracking-wider text-ink-muted bg-paper-tint border-b hl">
                     <tr>
                       <th class="text-left p-3">Year</th>
                       <th class="text-right p-3">Revenue</th>
@@ -663,16 +746,16 @@
                       <th class="text-right p-3">Goodwill</th>
                     </tr>
                   </thead>
-                  <tbody class="text-zinc-300">
+                  <tbody>
                     <template x-for="row in (report.financial_table || [])" :key="row.year">
-                      <tr class="border-t hl hover:bg-ink-900/40 transition">
-                        <td class="p-3 font-medium text-white" x-text="row.year"></td>
-                        <td class="p-3 text-right" x-text="fmtNum(row.revenue)"></td>
-                        <td class="p-3 text-right" x-text="fmtNum(row.net_income)"></td>
-                        <td class="p-3 text-right" x-text="fmtNum(row.operating_cash_flow)"></td>
-                        <td class="p-3 text-right" x-text="fmtNum(row.accounts_receivable)"></td>
-                        <td class="p-3 text-right" x-text="fmtNum(row.inventory)"></td>
-                        <td class="p-3 text-right" x-text="fmtNum(row.goodwill)"></td>
+                      <tr class="border-t hl hover:bg-paper-tint transition">
+                        <td class="p-3 font-medium text-ink" x-text="row.year"></td>
+                        <td class="p-3 text-right text-ink-body" x-text="fmtNum(row.revenue)"></td>
+                        <td class="p-3 text-right text-ink-body" x-text="fmtNum(row.net_income)"></td>
+                        <td class="p-3 text-right text-ink-body" x-text="fmtNum(row.operating_cash_flow)"></td>
+                        <td class="p-3 text-right text-ink-body" x-text="fmtNum(row.accounts_receivable)"></td>
+                        <td class="p-3 text-right text-ink-body" x-text="fmtNum(row.inventory)"></td>
+                        <td class="p-3 text-right text-ink-body" x-text="fmtNum(row.goodwill)"></td>
                       </tr>
                     </template>
                   </tbody>
@@ -682,15 +765,15 @@
 
             <!-- CONCLUSION -->
             <section id="conclusion">
-              <h2 class="display text-3xl font-semibold mb-1">Conclusion</h2>
-              <div class="text-zinc-500 mono text-[11px] uppercase tracking-wider mb-6">08 · Cautionary framing</div>
-              <p class="display text-xl text-zinc-200 leading-relaxed" x-text="report.conclusion"></p>
+              <h2 class="display text-[42px] font-bold mb-1">Conclusion</h2>
+              <div class="eyebrow mb-6">08 · Cautionary framing</div>
+              <p class="lead" x-text="report.conclusion"></p>
             </section>
 
             <!-- LIMITATIONS -->
             <section id="limitations" x-show="(report.limitations || []).length">
-              <h2 class="display text-2xl font-semibold mb-3">Limitations</h2>
-              <ul class="text-sm text-zinc-400 space-y-1.5 list-disc list-outside ml-5">
+              <h2 class="display text-[32px] font-semibold mb-3">Limitations</h2>
+              <ul class="body-text space-y-2 list-disc list-outside ml-5">
                 <template x-for="l in (report.limitations || [])" :key="l">
                   <li x-text="l"></li>
                 </template>
@@ -709,21 +792,43 @@
 <script>
 function muddyApp() {
   return {
-    view: 'landing',           // landing | loading | report
+    view: 'landing',
     ticker: '',
     isLoading: false,
     provider: { provider: '', model: '' },
     recentReports: [],
     report: null,
-    sourcesData: 0,
     activeSection: 'snapshot',
     progress: { fraction: 0, message: '', stage: '', log: [], error: null },
+
     presets: [
-      { ticker: 'LKNCY', name: 'Luckin Coffee',     kind: 'short',   note: 'Original Muddy Waters short (2020). Foreign issuer, 20-F + 6-K.' },
-      { ticker: 'NKLA',  name: 'Nikola',            kind: 'short',   note: 'Hindenburg short (2020). EV / hydrogen claims.' },
-      { ticker: 'GOTU',  name: 'Gaotu Techedu',     kind: 'short',   note: 'Citron / Muddy Waters target (2020).' },
-      { ticker: 'AAPL',  name: 'Apple',             kind: 'control', note: 'Calibration: clean balance sheet, expect ~zero anomalies.' },
+      { ticker: 'LKNCY', name: 'Luckin Coffee' },
+      { ticker: 'NKLA',  name: 'Nikola' },
+      { ticker: 'GOTU',  name: 'Gaotu' },
+      { ticker: 'AAPL',  name: 'Apple (control)' },
     ],
+
+    // Known ticker → primary domain (used for Clearbit logo lookup).
+    // For unknown tickers we fall back to a heuristic guess.
+    tickerDomains: {
+      LKNCY: 'luckincoffee.com',
+      NKLA:  'nikolamotor.com',
+      GOTU:  'gaotu.cn',
+      AAPL:  'apple.com',
+      MSFT:  'microsoft.com',
+      GOOGL: 'google.com',
+      AMZN:  'amazon.com',
+      META:  'meta.com',
+      TSLA:  'tesla.com',
+      NVDA:  'nvidia.com',
+      BABA:  'alibaba.com',
+      JD:    'jd.com',
+      PDD:   'pddholdings.com',
+      NIO:   'nio.com',
+      LI:    'lixiang.com',
+      XPEV:  'xiaopeng.com',
+    },
+
     toc: [
       { id: 'snapshot',    label: 'Snapshot' },
       { id: 'anomalies',   label: 'Anomalies' },
@@ -846,17 +951,17 @@ function muddyApp() {
 
     severityClass(s) {
       s = (s || '').toLowerCase();
-      if (s === 'high')   return 'text-blood-500 bg-blood-600/10 border border-blood-700/40';
+      if (s === 'high')   return 'text-blood-500 bg-blood-500/10 border border-blood-700/40';
       if (s === 'medium') return 'text-amber2-500 bg-amber2-500/10 border border-amber2-500/40';
-      return 'text-azure-400 bg-azure-500/10 border border-azure-500/30';
+      return 'text-azure-500 bg-azure-500/10 border border-azure-500/30';
     },
 
     labelClass(l) {
       l = (l || '').toLowerCase();
-      if (l === 'fact')        return 'text-jade-400 bg-jade-500/10 border border-jade-500/30';
-      if (l === 'inference')   return 'text-azure-400 bg-azure-500/10 border border-azure-500/30';
-      if (l === 'speculation') return 'text-blood-500 bg-blood-600/10 border border-blood-700/40';
-      return 'text-amber2-400 bg-amber2-500/10 border border-amber2-500/40';
+      if (l === 'fact')        return 'text-jade-500 bg-jade-500/10 border border-jade-500/30';
+      if (l === 'inference')   return 'text-azure-500 bg-azure-500/10 border border-azure-500/30';
+      if (l === 'speculation') return 'text-blood-500 bg-blood-500/10 border border-blood-700/40';
+      return 'text-amber2-500 bg-amber2-500/10 border border-amber2-500/40';
     },
 
     fmtNum(v) {
@@ -874,6 +979,20 @@ function muddyApp() {
         const d = new Date(iso);
         return d.toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' });
       } catch { return iso; }
+    },
+
+    logoUrl(ticker) {
+      // 1. known mapping?
+      const known = this.tickerDomains[(ticker || '').toUpperCase()];
+      if (known) return `https://logo.clearbit.com/${known}`;
+      // 2. heuristic: lowercase first word of company name + .com
+      const name = (this.report?.company_name || '').toLowerCase();
+      const first = name.split(/[\s,.]+/).filter(Boolean)[0];
+      if (first && first.length >= 3) {
+        return `https://logo.clearbit.com/${first}.com`;
+      }
+      // 3. fallback to ticker.com (sometimes works, sometimes doesn't; onerror hides)
+      return `https://logo.clearbit.com/${(ticker || '').toLowerCase()}.com`;
     },
 
     hasCategoryConcerns() {
@@ -905,36 +1024,33 @@ function muddyApp() {
       const layoutBase = {
         paper_bgcolor: 'transparent',
         plot_bgcolor: 'transparent',
-        font: { family: 'Inter, ui-sans-serif', color: '#a1a1aa', size: 12 },
+        font: { family: 'Inter, ui-sans-serif', color: '#272525', size: 12 },
         margin: { l: 50, r: 20, t: 40, b: 40 },
         legend: { orientation: 'h', y: -0.18 },
-        xaxis: { gridcolor: '#22222b', tickfont: { family: 'JetBrains Mono', color: '#a1a1aa', size: 11 } },
-        yaxis: { gridcolor: '#22222b', tickfont: { family: 'JetBrains Mono', color: '#a1a1aa', size: 11 } },
+        xaxis: { gridcolor: '#e7e3da', tickfont: { family: 'JetBrains Mono', color: '#6e6a64', size: 11 } },
+        yaxis: { gridcolor: '#e7e3da', tickfont: { family: 'JetBrains Mono', color: '#6e6a64', size: 11 } },
       };
       const config = { displayModeBar: false, responsive: true };
 
-      // Revenue vs AR
       if (document.getElementById('chart-rev-ar')) {
         Plotly.newPlot('chart-rev-ar', [
-          { x: years, y: tbl.map(r => r.revenue || null), type: 'bar', name: 'Revenue', marker: { color: '#60a5fa' } },
-          { x: years, y: tbl.map(r => r.accounts_receivable || null), type: 'bar', name: 'Accounts receivable', marker: { color: '#fbbf24' } },
-        ], { ...layoutBase, title: { text: 'Revenue vs Accounts Receivable', font: { color: '#fafafa', size: 13 } }, barmode: 'group' }, config);
+          { x: years, y: tbl.map(r => r.revenue || null), type: 'bar', name: 'Revenue', marker: { color: '#1d4ed8' } },
+          { x: years, y: tbl.map(r => r.accounts_receivable || null), type: 'bar', name: 'Accounts receivable', marker: { color: '#b45309' } },
+        ], { ...layoutBase, title: { text: 'Revenue vs Accounts Receivable', font: { color: '#0a0a0a', size: 14, family: 'Source Serif 4' } }, barmode: 'group' }, config);
       }
 
-      // NI vs CFO
       if (document.getElementById('chart-ni-cfo')) {
         Plotly.newPlot('chart-ni-cfo', [
-          { x: years, y: tbl.map(r => r.net_income || null), type: 'scatter', mode: 'lines+markers', name: 'Net income', line: { color: '#ef4444', width: 3 } },
-          { x: years, y: tbl.map(r => r.operating_cash_flow || null), type: 'scatter', mode: 'lines+markers', name: 'Operating cash flow', line: { color: '#34d399', width: 3 } },
-        ], { ...layoutBase, title: { text: 'Net Income vs Operating Cash Flow', font: { color: '#fafafa', size: 13 } } }, config);
+          { x: years, y: tbl.map(r => r.net_income || null), type: 'scatter', mode: 'lines+markers', name: 'Net income', line: { color: '#b91c1c', width: 3 } },
+          { x: years, y: tbl.map(r => r.operating_cash_flow || null), type: 'scatter', mode: 'lines+markers', name: 'Operating cash flow', line: { color: '#047857', width: 3 } },
+        ], { ...layoutBase, title: { text: 'Net Income vs Operating Cash Flow', font: { color: '#0a0a0a', size: 14, family: 'Source Serif 4' } } }, config);
       }
 
-      // Gross margin
       const gm = tbl.map(r => (r.revenue && r.gross_profit) ? (r.gross_profit / r.revenue * 100) : null);
       if (document.getElementById('chart-margin') && gm.some(v => v !== null)) {
         Plotly.newPlot('chart-margin', [
-          { x: years, y: gm, type: 'scatter', mode: 'lines+markers', name: 'Gross margin %', line: { color: '#c084fc', width: 3 } },
-        ], { ...layoutBase, title: { text: 'Gross margin trend (%)', font: { color: '#fafafa', size: 13 } } }, config);
+          { x: years, y: gm, type: 'scatter', mode: 'lines+markers', name: 'Gross margin %', line: { color: '#6d28d9', width: 3 } },
+        ], { ...layoutBase, title: { text: 'Gross margin trend (%)', font: { color: '#0a0a0a', size: 14, family: 'Source Serif 4' } } }, config);
       } else if (document.getElementById('chart-margin')) {
         document.getElementById('chart-margin').innerHTML = '';
       }
