@@ -128,9 +128,12 @@ def build_synthesis_user_prompt(*, ticker: str, company_name: str | None,
     fin_block = ""
     if financial_brief:
         fin_block = (
-            "\nQUANTITATIVE FINDINGS (deterministic, computed from XBRL):\n"
+            "\nQUANTITATIVE & FORENSIC CONTEXT (deterministic, computed from XBRL):\n"
             f"{financial_brief}\n"
-            "Treat these as already-verified numerical facts. Use them to anchor your narrative.\n"
+            "Treat the anomalies and forensic scores as already-verified numerical facts. "
+            "If Beneish M-Score > -1.78, flag the manipulation signal in your thesis. "
+            "If Piotroski F < 4, mention financial weakness. "
+            "If Altman Z is in the distress zone, mention solvency risk.\n"
         )
     return f"""\
 Ticker: {ticker}

@@ -16,7 +16,7 @@ from collections.abc import Callable
 from datetime import datetime, timezone
 from pathlib import Path
 
-from .financials import build_financial_snapshot, snapshot_to_brief
+from .financials import build_financial_snapshot, compute_risk_grade, snapshot_to_brief
 from .llm import chat_json, provider_info
 from .models import Citation, Finding, PipelineResult, Report
 from .prompts import (
@@ -212,6 +212,7 @@ def _build_report(
     sources,
     findings: list[Finding],
     financial_brief: dict | None,
+    fin_snapshot=None,
 ) -> Report:
     findings_brief = [
         {
@@ -242,8 +243,10 @@ def _build_report(
             {
                 "entity": financial_brief.get("entity"),
                 "anomalies": financial_brief.get("anomalies", []),
+                "forensic_scores": financial_brief.get("forensic_scores"),
             },
             indent=2,
+            default=str,
         )
 
     user = build_synthesis_user_prompt(
@@ -262,6 +265,18 @@ def _build_report(
     )
 
     now = datetime.now(timezone.utc).isoformat()
+
+    # Composite risk grade — combines deterministic anomalies + LLM findings +
+    # academic forensic scores into a single A-F letter.
+    forensic_obj = (fin_snapshot.forensic_scores if fin_snapshot is not None else None)
+    anomaly_objs = (fin_snapshot.anomalies if fin_snapshot is not None else [])
+    risk = compute_risk_grade(
+        anomalies=anomaly_objs,
+        red_flags=findings,
+        forensic=forensic_obj,
+    )
+    risk_dict = {"score": risk.score, "grade": risk.grade, "breakdown": risk.breakdown}
+
     return Report(
         ticker=ticker,
         company_name=payload.get("company_name") or company_name,
@@ -289,6 +304,8 @@ def _build_report(
         ],
         financial_anomalies=(financial_brief or {}).get("anomalies", []),
         financial_table=(financial_brief or {}).get("annual_table", []),
+        forensic_scores=(financial_brief or {}).get("forensic_scores") or {},
+        risk_grade=risk_dict,
         provider_info=provider_info(),
     )
 
@@ -386,6 +403,7 @@ def generate_report(
         sources=sources,
         findings=findings,
         financial_brief=fin_brief,
+        fin_snapshot=fin_snap,
     )
 
     _progress(progress, "Rendering HTML…", 0.95)

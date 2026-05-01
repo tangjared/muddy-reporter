@@ -183,6 +183,75 @@
       letter-spacing: -0.03em;
     }
 
+    /* Risk Grade hero card */
+    .grade-card {
+      background: #fff;
+      border: 1px solid #e7e3da;
+      border-radius: 16px;
+      padding: 18px 22px;
+      min-width: 220px;
+      position: relative;
+      overflow: hidden;
+    }
+    .grade-letter {
+      font-family: 'Source Serif 4', ui-serif;
+      font-weight: 700;
+      font-size: 5.5rem;
+      line-height: 0.95;
+      letter-spacing: -0.04em;
+    }
+    .grade-A { color: #047857; }
+    .grade-B { color: #65a30d; }
+    .grade-C { color: #b45309; }
+    .grade-D { color: #c2410c; }
+    .grade-F { color: #b91c1c; }
+
+    .grade-bar { height: 5px; background: #f1ee e7; border-radius: 999px; overflow: hidden; }
+    .grade-bar > span {
+      display: block; height: 100%; border-radius: 999px;
+      background: linear-gradient(90deg, #047857 0%, #b45309 50%, #b91c1c 100%);
+    }
+
+    /* Forensic score tile */
+    .score-tile {
+      background: #fff;
+      border: 1px solid #e7e3da;
+      border-radius: 14px;
+      padding: 18px;
+    }
+    .score-tile .score-num {
+      font-family: 'Source Serif 4', ui-serif;
+      font-weight: 700;
+      font-size: 2.6rem;
+      line-height: 1;
+      letter-spacing: -0.02em;
+    }
+    .signal-good { color: #047857; background: #ecfdf5; border: 1px solid #86efac; }
+    .signal-warn { color: #b45309; background: #fffbeb; border: 1px solid #fcd34d; }
+    .signal-bad  { color: #b91c1c; background: #fef2f2; border: 1px solid #fca5a5; }
+    .signal-na   { color: #6e6a64; background: #f3f1ec; border: 1px solid #d3cdc0; }
+
+    /* Featured Investigation card */
+    .case-card {
+      background: #fff;
+      border: 1px solid #e7e3da;
+      border-radius: 16px;
+      padding: 18px;
+      text-align: left;
+      transition: border-color 0.15s, transform 0.15s;
+    }
+    .case-card:hover {
+      border-color: #b91c1c;
+      transform: translateY(-2px);
+    }
+    .case-card .firm {
+      font-family: Inter, ui-sans-serif;
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+    }
+
     /* subtle gradient outline on hero CTA */
     .grad-border {
       position: relative;
@@ -323,21 +392,64 @@
         </div>
       </form>
 
-      <!-- Preset tickers as quick examples -->
+      <!-- Preset tickers as quick examples (small chips) -->
       <div class="mt-7 flex flex-wrap justify-center gap-2 text-sm">
-        <span class="text-ink-muted self-center mr-1">Try:</span>
+        <span class="text-ink-muted self-center mr-1">Quick try:</span>
         <template x-for="p in presets" :key="p.ticker">
           <button @click="ticker = p.ticker; generate()"
             class="px-3 py-1.5 mono text-[12px] uppercase tracking-wider rounded-full border hl bg-white hover:bg-paper-tint hover:border-blood-700/40 transition flex items-center gap-1.5">
             <span x-text="p.ticker"></span>
-            <span class="text-ink-dim normal-case tracking-normal" x-text="'· ' + p.name"></span>
           </button>
         </template>
       </div>
+    </section>
 
-      <!-- Recent reports -->
-      <div class="mt-16" x-show="recentReports.length > 0">
-        <div class="eyebrow mb-4">Recent on this server</div>
+    <!-- FEATURED INVESTIGATIONS GALLERY -->
+    <section class="border-t hl bg-paper-deep">
+      <div class="max-w-6xl mx-auto px-6 py-20">
+        <div class="text-center mb-10">
+          <div class="eyebrow text-blood-500 mb-3">Featured investigations</div>
+          <h2 class="display text-[42px] font-bold mb-3">Famous short-seller cases</h2>
+          <p class="body-text text-ink-muted max-w-2xl mx-auto">
+            Each card runs the full pipeline against the actual SEC filings of a company that was
+            publicly shorted by a major research firm. Click to see what our system would have flagged.
+          </p>
+        </div>
+
+        <div class="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <template x-for="c in featuredCases" :key="c.ticker">
+            <button @click="ticker = c.ticker; generate()" class="case-card group">
+              <div class="flex items-start gap-3 mb-3">
+                <div class="logo-ring shrink-0" style="width:44px;height:44px;border-radius:10px">
+                  <img :src="logoUrl(c.ticker)" :alt="c.ticker"
+                       @error="$el.style.display='none'; $el.nextElementSibling.style.display='flex'"
+                       loading="lazy" />
+                  <div class="logo-fallback" style="display:none;font-size:1.1rem" x-text="c.ticker.slice(0,2)"></div>
+                </div>
+                <div class="min-w-0 flex-1">
+                  <div class="display text-lg font-semibold leading-tight" x-text="c.name"></div>
+                  <div class="mono text-[11px] text-ink-muted mt-0.5" x-text="c.ticker"></div>
+                </div>
+              </div>
+              <div class="flex items-baseline justify-between mb-2">
+                <span class="firm" :class="c.firm_color || 'text-blood-500'" x-text="c.firm"></span>
+                <span class="mono text-xs text-ink-muted" x-text="c.year"></span>
+              </div>
+              <p class="text-[13px] text-ink-body leading-relaxed mb-3" x-text="c.thesis"></p>
+              <div class="flex items-center justify-between text-[11px]">
+                <span class="text-ink-muted mono" x-text="c.outcome"></span>
+                <span class="text-blood-500 group-hover:translate-x-0.5 transition mono">Investigate →</span>
+              </div>
+            </button>
+          </template>
+        </div>
+      </div>
+    </section>
+
+    <!-- Recent reports -->
+    <section x-show="recentReports.length > 0" class="border-t hl">
+      <div class="max-w-6xl mx-auto px-6 py-12">
+        <div class="eyebrow mb-4">Recently analyzed on this server</div>
         <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-3 text-left">
           <template x-for="r in recentReports" :key="r.ticker">
             <button @click="loadCached(r.ticker)"
@@ -481,22 +593,65 @@
 
             <p class="lead max-w-4xl mt-7" x-text="report.core_thesis"></p>
 
-            <div class="mt-10 grid grid-cols-2 md:grid-cols-4 gap-3 max-w-3xl">
-              <div class="card p-4">
-                <div class="eyebrow">Filings</div>
-                <div class="display text-3xl font-bold mt-1" x-text="sourcesCount()"></div>
+            <!-- Risk Grade + KPI strip -->
+            <div class="mt-10 grid lg:grid-cols-[280px_minmax(0,1fr)] gap-4">
+              <!-- Composite Risk Grade -->
+              <div x-data="{ open: false }" x-show="report.risk_grade && report.risk_grade.grade" class="grade-card">
+                <div class="flex items-center justify-between">
+                  <div>
+                    <div class="eyebrow">Composite risk</div>
+                    <div class="grade-letter mt-1" :class="'grade-' + (report.risk_grade?.grade || 'C')" x-text="report.risk_grade?.grade || '—'"></div>
+                  </div>
+                  <div class="text-right">
+                    <div class="mono text-[11px] uppercase tracking-wider text-ink-muted">Score</div>
+                    <div class="display text-3xl font-bold" x-text="(report.risk_grade?.score || 0) + ''"></div>
+                    <div class="mono text-[10px] text-ink-muted">/ 100</div>
+                  </div>
+                </div>
+                <div class="grade-bar mt-4">
+                  <div class="h-full rounded-full"
+                       :style="`width: ${Math.min(100, report.risk_grade?.score || 0)}%; background: linear-gradient(90deg, #047857, #b45309 60%, #b91c1c);`"></div>
+                </div>
+                <button @click="open = !open" class="mt-3 mono text-[11px] uppercase tracking-wider text-ink-muted hover:text-ink flex items-center gap-1.5">
+                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
+                       :class="open ? 'rotate-90' : ''" class="transition">
+                    <path d="M9 18l6-6-6-6"/>
+                  </svg>
+                  <span x-text="open ? 'Hide breakdown' : 'How we got this'"></span>
+                </button>
+                <div x-show="open" x-collapse class="mt-3 pt-3 border-t hl space-y-2 text-xs">
+                  <template x-for="b in (report.risk_grade?.breakdown || [])" :key="b.label">
+                    <div class="flex items-baseline justify-between gap-3">
+                      <div class="min-w-0">
+                        <div class="text-ink-body font-medium truncate" x-text="b.label"></div>
+                        <div class="text-ink-muted text-[10px] mono" x-text="b.note"></div>
+                      </div>
+                      <div class="mono shrink-0 font-medium"
+                           :class="b.points > 0 ? 'text-blood-500' : (b.points < 0 ? 'text-jade-500' : 'text-ink-muted')"
+                           x-text="(b.points > 0 ? '+' : '') + b.points"></div>
+                    </div>
+                  </template>
+                </div>
               </div>
-              <div class="card p-4">
-                <div class="eyebrow">Red flags</div>
-                <div class="display text-3xl font-bold text-blood-500 mt-1" x-text="(report.red_flags || []).length"></div>
-              </div>
-              <div class="card p-4">
-                <div class="eyebrow">Anomalies</div>
-                <div class="display text-3xl font-bold text-amber2-500 mt-1" x-text="(report.financial_anomalies || []).length"></div>
-              </div>
-              <div class="card p-4">
-                <div class="eyebrow">Open Qs</div>
-                <div class="display text-3xl font-bold text-azure-500 mt-1" x-text="(report.open_questions || []).length"></div>
+
+              <!-- KPI strip -->
+              <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+                <div class="card p-4">
+                  <div class="eyebrow">Filings</div>
+                  <div class="display text-3xl font-bold mt-1" x-text="sourcesCount()"></div>
+                </div>
+                <div class="card p-4">
+                  <div class="eyebrow">Red flags</div>
+                  <div class="display text-3xl font-bold text-blood-500 mt-1" x-text="(report.red_flags || []).length"></div>
+                </div>
+                <div class="card p-4">
+                  <div class="eyebrow">Anomalies</div>
+                  <div class="display text-3xl font-bold text-amber2-500 mt-1" x-text="(report.financial_anomalies || []).length"></div>
+                </div>
+                <div class="card p-4">
+                  <div class="eyebrow">Open Qs</div>
+                  <div class="display text-3xl font-bold text-azure-500 mt-1" x-text="(report.open_questions || []).length"></div>
+                </div>
               </div>
             </div>
           </div>
@@ -585,10 +740,131 @@
               </div>
             </section>
 
+            <!-- FORENSIC SCORES -->
+            <section id="forensic" x-show="report.forensic_scores && (report.forensic_scores.beneish_m !== null || report.forensic_scores.piotroski_f !== null || report.forensic_scores.altman_z !== null)">
+              <h2 class="display text-[42px] font-bold mb-1">Forensic scores</h2>
+              <div class="eyebrow mb-6">03 · Academic distress &amp; manipulation models</div>
+
+              <div class="grid md:grid-cols-3 gap-4">
+                <!-- BENEISH M-SCORE -->
+                <div class="score-tile" x-data="{ open: false }">
+                  <div class="flex items-baseline justify-between mb-1">
+                    <div class="eyebrow">Beneish M-Score</div>
+                    <a href="https://en.wikipedia.org/wiki/Beneish_M-Score" target="_blank" class="text-ink-dim hover:text-ink-muted text-xs">↗</a>
+                  </div>
+                  <div class="display text-xs text-ink-muted mb-3">Earnings manipulation likelihood</div>
+                  <template x-if="report.forensic_scores.beneish_m !== null">
+                    <div>
+                      <div class="score-num" :class="report.forensic_scores.beneish_m > -1.78 ? 'text-blood-500' : 'text-jade-500'"
+                           x-text="report.forensic_scores.beneish_m"></div>
+                      <div class="mt-2 inline-block mono text-[10px] uppercase tracking-wider px-2 py-1 rounded font-medium"
+                           :class="report.forensic_scores.beneish_signal === 'manipulator' ? 'signal-bad' : 'signal-good'"
+                           x-text="report.forensic_scores.beneish_signal"></div>
+                      <div class="text-[11px] text-ink-muted mt-3">
+                        Threshold <span class="mono">M &gt; -1.78</span> = likely manipulator (Beneish 1999)
+                      </div>
+                      <button @click="open = !open" class="mt-3 mono text-[10px] uppercase tracking-wider text-ink-muted hover:text-ink"
+                              x-show="report.forensic_scores.beneish_components"
+                              x-text="open ? 'hide components' : 'show 8 components'"></button>
+                      <div x-show="open" x-collapse class="mt-2 grid grid-cols-2 gap-1 text-[11px] mono">
+                        <template x-for="[k, v] in Object.entries(report.forensic_scores.beneish_components || {})" :key="k">
+                          <div class="flex justify-between">
+                            <span class="text-ink-muted" x-text="k"></span>
+                            <span class="text-ink-body" x-text="v"></span>
+                          </div>
+                        </template>
+                      </div>
+                    </div>
+                  </template>
+                  <template x-if="report.forensic_scores.beneish_m === null">
+                    <div>
+                      <div class="score-num text-ink-dim">—</div>
+                      <div class="mt-2 inline-block mono text-[10px] uppercase tracking-wider px-2 py-1 rounded signal-na">N/A</div>
+                      <div class="text-[11px] text-ink-muted mt-3">Not enough XBRL data tagged (PPE / SGA / depreciation often missing for foreign issuers).</div>
+                    </div>
+                  </template>
+                </div>
+
+                <!-- PIOTROSKI F-SCORE -->
+                <div class="score-tile" x-data="{ open: false }">
+                  <div class="flex items-baseline justify-between mb-1">
+                    <div class="eyebrow">Piotroski F-Score</div>
+                    <a href="https://en.wikipedia.org/wiki/Piotroski_F-score" target="_blank" class="text-ink-dim hover:text-ink-muted text-xs">↗</a>
+                  </div>
+                  <div class="display text-xs text-ink-muted mb-3">Financial strength (0–9)</div>
+                  <template x-if="report.forensic_scores.piotroski_f !== null">
+                    <div>
+                      <div class="score-num"
+                           :class="report.forensic_scores.piotroski_f >= 7 ? 'text-jade-500' : (report.forensic_scores.piotroski_f <= 3 ? 'text-blood-500' : 'text-amber2-500')">
+                        <span x-text="report.forensic_scores.piotroski_f"></span><span class="text-2xl text-ink-dim">/9</span>
+                      </div>
+                      <div class="mt-2 inline-block mono text-[10px] uppercase tracking-wider px-2 py-1 rounded font-medium"
+                           :class="report.forensic_scores.piotroski_strength === 'strong' ? 'signal-good' : (report.forensic_scores.piotroski_strength === 'weak' ? 'signal-bad' : 'signal-warn')"
+                           x-text="report.forensic_scores.piotroski_strength"></div>
+                      <div class="text-[11px] text-ink-muted mt-3">≥7 strong · 4-6 neutral · ≤3 weak (Piotroski 2000)</div>
+                      <button @click="open = !open" class="mt-3 mono text-[10px] uppercase tracking-wider text-ink-muted hover:text-ink"
+                              x-show="report.forensic_scores.piotroski_breakdown"
+                              x-text="open ? 'hide tests' : 'show 9 tests'"></button>
+                      <div x-show="open" x-collapse class="mt-2 space-y-1 text-[11px]">
+                        <template x-for="t in (report.forensic_scores.piotroski_breakdown || [])" :key="t.name">
+                          <div class="flex items-baseline gap-2">
+                            <span class="shrink-0" :class="t.passed === true ? 'text-jade-500' : (t.passed === false ? 'text-blood-500' : 'text-ink-dim')"
+                                  x-text="t.passed === true ? '✓' : (t.passed === false ? '✗' : '○')"></span>
+                            <span class="text-ink-body" x-text="t.name"></span>
+                          </div>
+                        </template>
+                      </div>
+                    </div>
+                  </template>
+                  <template x-if="report.forensic_scores.piotroski_f === null">
+                    <div>
+                      <div class="score-num text-ink-dim">—</div>
+                      <div class="mt-2 inline-block mono text-[10px] uppercase tracking-wider px-2 py-1 rounded signal-na">N/A</div>
+                      <div class="text-[11px] text-ink-muted mt-3">Need ≥2 years of tagged data.</div>
+                    </div>
+                  </template>
+                </div>
+
+                <!-- ALTMAN Z-SCORE -->
+                <div class="score-tile">
+                  <div class="flex items-baseline justify-between mb-1">
+                    <div class="eyebrow">Altman Z'-Score</div>
+                    <a href="https://en.wikipedia.org/wiki/Altman_Z-score" target="_blank" class="text-ink-dim hover:text-ink-muted text-xs">↗</a>
+                  </div>
+                  <div class="display text-xs text-ink-muted mb-3">Distress / bankruptcy risk</div>
+                  <template x-if="report.forensic_scores.altman_z !== null">
+                    <div>
+                      <div class="score-num"
+                           :class="report.forensic_scores.altman_zone === 'safe' ? 'text-jade-500' : (report.forensic_scores.altman_zone === 'distress' ? 'text-blood-500' : 'text-amber2-500')"
+                           x-text="report.forensic_scores.altman_z"></div>
+                      <div class="mt-2 inline-block mono text-[10px] uppercase tracking-wider px-2 py-1 rounded font-medium"
+                           :class="report.forensic_scores.altman_zone === 'safe' ? 'signal-good' : (report.forensic_scores.altman_zone === 'distress' ? 'signal-bad' : 'signal-warn')"
+                           x-text="report.forensic_scores.altman_zone + ' zone'"></div>
+                      <div class="text-[11px] text-ink-muted mt-3">≥2.9 safe · 1.23–2.9 grey · &lt;1.23 distress (Altman 1983 Z')</div>
+                    </div>
+                  </template>
+                  <template x-if="report.forensic_scores.altman_z === null">
+                    <div>
+                      <div class="score-num text-ink-dim">—</div>
+                      <div class="mt-2 inline-block mono text-[10px] uppercase tracking-wider px-2 py-1 rounded signal-na">N/A</div>
+                      <div class="text-[11px] text-ink-muted mt-3">Missing balance-sheet items.</div>
+                    </div>
+                  </template>
+                </div>
+              </div>
+
+              <!-- Footnote on data limitations -->
+              <div x-show="(report.forensic_scores.notes || []).length" class="mt-4 text-[11px] text-ink-muted">
+                <template x-for="n in (report.forensic_scores.notes || [])" :key="n">
+                  <div x-text="'· ' + n"></div>
+                </template>
+              </div>
+            </section>
+
             <!-- TOP RED FLAGS -->
             <section id="redflags">
               <h2 class="display text-[42px] font-bold mb-1">Top red flags</h2>
-              <div class="eyebrow mb-6">03 · Citation-graded</div>
+              <div class="eyebrow mb-6">04 · Citation-graded</div>
 
               <template x-if="(report.red_flags || []).length === 0">
                 <div class="text-ink-muted body-text">No red flags surfaced.</div>
@@ -675,7 +951,7 @@
             <!-- MANAGEMENT vs EVIDENCE -->
             <section id="claims" x-show="(report.management_claims_vs_counterpoints || []).length">
               <h2 class="display text-[42px] font-bold mb-1">Management vs evidence</h2>
-              <div class="eyebrow mb-6">04 · Side-by-side</div>
+              <div class="eyebrow mb-6">05 · Side-by-side</div>
               <div class="space-y-4">
                 <template x-for="(row, i) in (report.management_claims_vs_counterpoints || [])" :key="i">
                   <div class="card overflow-hidden">
@@ -700,7 +976,7 @@
             <!-- CONCERNS BY CATEGORY -->
             <section id="categories" x-show="hasCategoryConcerns()">
               <h2 class="display text-[42px] font-bold mb-1">Concerns by category</h2>
-              <div class="eyebrow mb-6">05</div>
+              <div class="eyebrow mb-6">06</div>
               <div class="grid sm:grid-cols-2 gap-4">
                 <template x-for="[cat, items] in categoryEntries()" :key="cat">
                   <div class="card p-5">
@@ -718,7 +994,7 @@
             <!-- OPEN QUESTIONS -->
             <section id="questions" x-show="(report.open_questions || []).length">
               <h2 class="display text-[42px] font-bold mb-1">Questions for management</h2>
-              <div class="eyebrow mb-6">06</div>
+              <div class="eyebrow mb-6">07</div>
               <ol class="space-y-3 body-text">
                 <template x-for="(q, i) in (report.open_questions || [])" :key="i">
                   <li class="flex gap-4">
@@ -732,7 +1008,7 @@
             <!-- FINANCIAL TABLE -->
             <section id="financials" x-show="(report.financial_table || []).length">
               <h2 class="display text-[42px] font-bold mb-1">Annual financials</h2>
-              <div class="eyebrow mb-6">07 · From XBRL</div>
+              <div class="eyebrow mb-6">08 · From XBRL</div>
               <div class="card overflow-x-auto">
                 <table class="w-full text-sm mono">
                   <thead class="text-[11px] uppercase tracking-wider text-ink-muted bg-paper-tint border-b hl">
@@ -766,7 +1042,7 @@
             <!-- CONCLUSION -->
             <section id="conclusion">
               <h2 class="display text-[42px] font-bold mb-1">Conclusion</h2>
-              <div class="eyebrow mb-6">08 · Cautionary framing</div>
+              <div class="eyebrow mb-6">09 · Cautionary framing</div>
               <p class="lead" x-text="report.conclusion"></p>
             </section>
 
@@ -804,16 +1080,70 @@ function muddyApp() {
     presets: [
       { ticker: 'LKNCY', name: 'Luckin Coffee' },
       { ticker: 'NKLA',  name: 'Nikola' },
-      { ticker: 'GOTU',  name: 'Gaotu' },
       { ticker: 'AAPL',  name: 'Apple (control)' },
     ],
 
+    // Famous short-seller cases — full data for the featured gallery.
+    featuredCases: [
+      {
+        ticker: 'LKNCY', name: 'Luckin Coffee',
+        firm: 'Muddy Waters', firm_color: 'text-blood-500', year: 2020,
+        thesis: 'Anonymous report alleged $310M of fabricated sales receipts via fake transactions and channel stuffing.',
+        outcome: 'SEC settled at $180M · stock down 80% in 2 weeks',
+      },
+      {
+        ticker: 'NKLA', name: 'Nikola Motor',
+        firm: 'Hindenburg', firm_color: 'text-blood-500', year: 2020,
+        thesis: 'Founder Trevor Milton accused of years of fraud, including faked truck-rolling-downhill demo.',
+        outcome: 'CEO criminally convicted · stock fell ~80%',
+      },
+      {
+        ticker: 'IEP', name: 'Icahn Enterprises',
+        firm: 'Hindenburg', firm_color: 'text-blood-500', year: 2023,
+        thesis: 'Carl Icahn\'s holding co accused of being a Ponzi-like structure with 75% LP-margined collateral.',
+        outcome: 'Stock fell 60%+ · dividend cut 50%',
+      },
+      {
+        ticker: 'MSGE', name: 'Madison Square Garden Ent.',
+        firm: 'Hindenburg', firm_color: 'text-blood-500', year: 2023,
+        thesis: 'Dolan-family related-party transactions and Sphere Las Vegas concerns.',
+        outcome: 'Sustained skepticism · stock volatile',
+      },
+      {
+        ticker: 'GOTU', name: 'Gaotu Techedu',
+        firm: 'Muddy Waters', firm_color: 'text-blood-500', year: 2020,
+        thesis: 'Multiple short reports alleged inflated student enrollment and revenue.',
+        outcome: 'Stock down 95% post-China ed-tech crackdown',
+      },
+      {
+        ticker: 'WKHS', name: 'Workhorse Group',
+        firm: 'Citron Research', firm_color: 'text-amber2-500', year: 2021,
+        thesis: 'Short report doubted ability to win USPS contract; questioned production claims.',
+        outcome: 'Lost USPS bid · stock down 90% from peak',
+      },
+      {
+        ticker: 'SAVE', name: 'Spirit Airlines',
+        firm: 'Market consensus', firm_color: 'text-amber2-500', year: 2024,
+        thesis: 'Going-concern doubts after JetBlue merger blocked; mounting losses and debt walls.',
+        outcome: 'Filed Ch. 11 bankruptcy Nov 2024',
+      },
+      {
+        ticker: 'AAPL', name: 'Apple',
+        firm: 'Control company', firm_color: 'text-jade-500', year: 2024,
+        thesis: 'Calibration baseline: clean balance sheet, no known forensic concerns.',
+        outcome: 'Should grade as A · zero anomalies',
+      },
+    ],
+
     // Known ticker → primary domain (used for Clearbit logo lookup).
-    // For unknown tickers we fall back to a heuristic guess.
     tickerDomains: {
       LKNCY: 'luckincoffee.com',
       NKLA:  'nikolamotor.com',
+      IEP:   'ielp.com',
+      MSGE:  'msgentertainment.com',
       GOTU:  'gaotu.cn',
+      WKHS:  'workhorse.com',
+      SAVE:  'spirit.com',
       AAPL:  'apple.com',
       MSFT:  'microsoft.com',
       GOOGL: 'google.com',
@@ -832,6 +1162,7 @@ function muddyApp() {
     toc: [
       { id: 'snapshot',    label: 'Snapshot' },
       { id: 'anomalies',   label: 'Anomalies' },
+      { id: 'forensic',    label: 'Forensic scores' },
       { id: 'redflags',    label: 'Red flags' },
       { id: 'claims',      label: 'Claims vs evidence' },
       { id: 'categories',  label: 'By category' },
