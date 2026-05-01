@@ -32,9 +32,9 @@ FINDINGS_SCHEMA_HINT = """\
   "findings": [
     {
       "title": "concise, specific title (avoid vague keywords)",
-      "category": "accounting|governance|disclosure|operations|capital_structure|related_parties|regulatory_legal|other",
-      "label": "fact|inference|question|speculation",
-      "confidence": "low|medium|high",
+      "category": "MUST be EXACTLY one of: accounting | governance | disclosure | operations | capital_structure | related_parties | regulatory_legal | other",
+      "label": "MUST be EXACTLY one of: fact | inference | question | speculation",
+      "confidence": "MUST be EXACTLY one of: low | medium | high",
       "claim_or_observation": "what specifically you noticed, with the relevant numbers or names",
       "why_it_matters": "the bearish/cautionary implication (1-2 sentences)",
       "counterpoints_or_alt_explanations": ["benign explanations a defender of the company would offer"],
@@ -45,6 +45,11 @@ FINDINGS_SCHEMA_HINT = """\
     }
   ]
 }
+
+ENUM RULES (strict):
+- Do NOT invent new label values like "inconsistency", "red flag", "concern", "warning". Use only fact/inference/question/speculation.
+- Do NOT invent new category values. Map related-party concerns to "related_parties", legal/regulatory to "regulatory_legal", debt/leverage to "capital_structure", etc.
+- Do NOT invent new confidence values. Use only low/medium/high.
 """
 
 

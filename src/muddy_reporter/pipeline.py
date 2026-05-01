@@ -64,6 +64,81 @@ def _format_financial_context(brief: dict | None) -> str | None:
     return "\n".join(lines)
 
 
+# ---------------------------------------------------------------------------
+# Defensive normalization of LLM output. LLMs occasionally invent enum values
+# ("inconsistency", "red flag", etc.) that fail strict Pydantic validation.
+# We map common variants to legal values so a single weird finding never kills
+# the whole pipeline.
+# ---------------------------------------------------------------------------
+
+_VALID_LABELS = {"fact", "inference", "question", "speculation"}
+_VALID_CONFIDENCE = {"low", "medium", "high"}
+_VALID_CATEGORIES = {
+    "accounting", "governance", "disclosure", "operations",
+    "capital_structure", "related_parties", "regulatory_legal", "other",
+}
+
+_LABEL_ALIASES = {
+    "inconsistency": "inference",
+    "contradiction": "inference",
+    "red flag": "inference",
+    "red_flag": "inference",
+    "concern": "question",
+    "warning": "question",
+    "allegation": "speculation",
+    "claim": "inference",
+    "observation": "inference",
+    "hypothesis": "inference",
+    "open question": "question",
+    "open_question": "question",
+}
+
+_CATEGORY_ALIASES = {
+    "financial": "accounting",
+    "auditing": "accounting",
+    "audit": "accounting",
+    "management": "governance",
+    "board": "governance",
+    "transparency": "disclosure",
+    "reporting": "disclosure",
+    "business": "operations",
+    "operational": "operations",
+    "debt": "capital_structure",
+    "leverage": "capital_structure",
+    "related party": "related_parties",
+    "related-party": "related_parties",
+    "legal": "regulatory_legal",
+    "regulatory": "regulatory_legal",
+    "compliance": "regulatory_legal",
+}
+
+
+def _normalize_label(raw: str | None) -> str:
+    s = (raw or "question").strip().lower()
+    if s in _VALID_LABELS:
+        return s
+    if s in _LABEL_ALIASES:
+        return _LABEL_ALIASES[s]
+    return "question"  # safest conservative default
+
+
+def _normalize_category(raw: str | None) -> str:
+    s = (raw or "other").strip().lower().replace(" ", "_").replace("-", "_")
+    if s in _VALID_CATEGORIES:
+        return s
+    if s in _CATEGORY_ALIASES:
+        return _CATEGORY_ALIASES[s]
+    return "other"
+
+
+def _normalize_confidence(raw: str | None) -> str:
+    s = (raw or "low").strip().lower()
+    if s in _VALID_CONFIDENCE:
+        return s
+    aliases = {"weak": "low", "tentative": "low", "moderate": "medium", "strong": "high", "definite": "high"}
+    return aliases.get(s, "low")
+
+
 def _extract_findings_for_doc(
     doc, text: str, *, financial_context: str | None
 ) -> list[Finding]:
@@ -88,40 +163,45 @@ def _extract_findings_for_doc(
             temperature=0.2,
         )
         for f in payload.get("findings", []):
-            citations = [
-                Citation(
-                    doc_id=ci.get("doc_id", doc.doc_id),
-                    url=ci.get("url", doc.primary_url),
-                    excerpt=(ci.get("excerpt") or "").strip(),
-                )
-                for ci in (f.get("citations") or [])
-                if (ci.get("excerpt") or "").strip()
-            ]
-            label = (f.get("label") or "question").lower()
-            # Anti-hallucination guard: facts/inferences without a citation
-            # are demoted to questions.
-            if label in {"fact", "inference"} and not citations:
-                label = "question"
+            try:
+                citations = [
+                    Citation(
+                        doc_id=ci.get("doc_id", doc.doc_id),
+                        url=ci.get("url", doc.primary_url),
+                        excerpt=(ci.get("excerpt") or "").strip(),
+                    )
+                    for ci in (f.get("citations") or [])
+                    if (ci.get("excerpt") or "").strip()
+                ]
+                label = _normalize_label(f.get("label"))
+                # Anti-hallucination guard: facts/inferences without a citation
+                # are demoted to questions.
+                if label in {"fact", "inference"} and not citations:
+                    label = "question"
 
-            all_findings.append(
-                Finding(
-                    title=(f.get("title") or "Finding").strip(),
-                    category=(f.get("category") or "other"),
-                    label=label,
-                    confidence=(f.get("confidence") or "low"),
-                    claim_or_observation=(f.get("claim_or_observation") or "").strip(),
-                    why_it_matters=(f.get("why_it_matters") or "").strip(),
-                    counterpoints_or_alt_explanations=[
-                        x.strip()
-                        for x in (f.get("counterpoints_or_alt_explanations") or [])
-                        if x.strip()
-                    ],
-                    open_questions=[
-                        x.strip() for x in (f.get("open_questions") or []) if x.strip()
-                    ],
-                    citations=citations,
+                all_findings.append(
+                    Finding(
+                        title=(f.get("title") or "Finding").strip()[:300],
+                        category=_normalize_category(f.get("category")),
+                        label=label,
+                        confidence=_normalize_confidence(f.get("confidence")),
+                        claim_or_observation=(f.get("claim_or_observation") or "").strip(),
+                        why_it_matters=(f.get("why_it_matters") or "").strip(),
+                        counterpoints_or_alt_explanations=[
+                            x.strip()
+                            for x in (f.get("counterpoints_or_alt_explanations") or [])
+                            if x.strip()
+                        ],
+                        open_questions=[
+                            x.strip() for x in (f.get("open_questions") or []) if x.strip()
+                        ],
+                        citations=citations,
+                    )
                 )
-            )
+            except Exception as e:  # noqa: BLE001
+                # One bad finding shouldn't kill the whole pipeline. Skip it.
+                print(f"[pipeline] skipping malformed finding from {doc.doc_id}: {e}")
+                continue
     return all_findings
 
 
