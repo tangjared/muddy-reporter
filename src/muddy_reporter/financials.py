@@ -168,14 +168,61 @@ def fetch_company_facts(cik10: str, cache_dir: str = "cache") -> dict[str, Any] 
 
 
 def _pick_concept(facts: dict, candidates: list[str]) -> tuple[str, dict] | None:
+    """Pick the concept with the *most annual data points*, not just the first hit.
+
+    Apple is the canonical edge case: `us-gaap:Revenues` exists in their facts
+    but is only used for segment/dimensional breakdowns (1 FY point in 2018).
+    Their real consolidated top-line lives in
+    `RevenueFromContractWithCustomerExcludingAssessedTax` (11 FY points). Same
+    pattern recurs for issuers that migrated from legacy ASC 605 tags to
+    ASC 606 tags — both can be present, only one is the real series.
+    Picking by data density auto-corrects for that.
+    """
     us_gaap = (facts.get("facts") or {}).get("us-gaap") or {}
     ifrs = (facts.get("facts") or {}).get("ifrs-full") or {}
+
+    def _score(node: dict) -> tuple[int, str]:
+        """Score a candidate concept. Higher tuple = better.
+
+        We weight by:
+        1. Number of distinct FY-marked annual periods in the last 7 fiscal years
+           — this drops to 0 for legacy tags (e.g. AAPL's `SalesRevenueNet`
+           which stopped publishing in FY2017 after the ASC 606 migration).
+        2. Latest annual period's end date — tiebreaker that prefers actively
+           reported tags over historical ones.
+        """
+        from datetime import datetime
+
+        units = node.get("units") or {}
+        unit_key = next(
+            (k for k in ["USD", "USD/shares", "shares"] if k in units),
+            next(iter(units), None),
+        )
+        if not unit_key:
+            return (0, "")
+        fy_periods: set[int] = set()
+        latest_end = ""
+        for r in units[unit_key]:
+            fp = str(r.get("fp") or "")
+            fy = r.get("fy")
+            end = str(r.get("end") or "")
+            if fp == "FY" and fy:
+                fy_periods.add(int(fy))
+            if end and end > latest_end:
+                latest_end = end
+        cutoff_year = datetime.utcnow().year - 7
+        recent = sum(1 for fy in fy_periods if fy >= cutoff_year)
+        return (recent, latest_end)
+
+    best: tuple[str, dict, tuple[int, str]] | None = None
     for c in candidates:
-        if c in us_gaap:
-            return c, us_gaap[c]
-        if c in ifrs:
-            return c, ifrs[c]
-    return None
+        node = us_gaap.get(c) or ifrs.get(c)
+        if not node:
+            continue
+        s = _score(node)
+        if best is None or s > best[2]:
+            best = (c, node, s)
+    return (best[0], best[1]) if best else None
 
 
 def _series_from_concept(node: dict) -> list[FactPoint]:

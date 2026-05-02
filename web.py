@@ -216,7 +216,15 @@ async def stream(job_id: str) -> EventSourceResponse:
 
 @app.get("/", response_class=HTMLResponse)
 async def index() -> FileResponse:
-    return FileResponse(FRONTEND_DIR / "index.html")
+    # No-store so theme/style changes show up on the next refresh — the SPA is
+    # tiny (single HTML file), so cache benefit is irrelevant here.
+    return FileResponse(
+        FRONTEND_DIR / "index.html",
+        headers={
+            "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0",
+            "Pragma": "no-cache",
+        },
+    )
 
 
 if (FRONTEND_DIR / "static").exists():

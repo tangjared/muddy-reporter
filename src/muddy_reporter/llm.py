@@ -51,6 +51,60 @@ def _call_provider(provider: str, *, system: str, user: str, schema_hint: str,
     raise ValueError(f"Unknown provider: {provider}")
 
 
+def _retry_provider_call(provider: str, *, system: str, user: str, schema_hint: str,
+                         temperature: float, retries: int = 2) -> dict[str, Any]:
+    """Per-provider retry with short exponential backoff for transient failures.
+
+    Triggered specifically by `httpx.RemoteProtocolError`, `APIConnectionError`,
+    `APITimeoutError`, and 5xx responses — DeepSeek's edge nodes intermittently
+    drop long-running connections mid-response.
+    """
+    import time as _t
+
+    last_exc: Exception | None = None
+    for attempt in range(retries + 1):
+        try:
+            return _call_provider(
+                provider, system=system, user=user,
+                schema_hint=schema_hint, temperature=temperature,
+            )
+        except Exception as e:  # noqa: BLE001
+            last_exc = e
+            msg = str(e).lower()
+            transient = any(s in msg for s in (
+                "connection error", "remoteprotocolerror", "server disconnected",
+                "timeout", "timed out", "502", "503", "504", "internal server error",
+                "rate limit", "429",
+            ))
+            if attempt >= retries or not transient:
+                break
+            _t.sleep(1.5 * (2 ** attempt))
+    assert last_exc is not None
+    raise last_exc
+
+
+def _fallback_chain(prefer: str | None) -> list[str]:
+    """Decide what providers to try in order, preserving the caller's preference.
+
+    Order: caller preference (if keyed) → auto-selected → other keyed providers
+    → heuristic. Each provider only appears once in the list.
+    """
+    chain: list[str] = []
+
+    def add(p: str) -> None:
+        if p and p not in chain and (p == "heuristic" or _has_key_for(p)):
+            chain.append(p)
+
+    if prefer:
+        add(prefer)
+    auto_p = _provider()
+    add(auto_p)
+    for p in ("deepseek", "gemini", "openai"):
+        add(p)
+    chain.append("heuristic")  # always last
+    return chain
+
+
 def chat_json(
     *,
     system: str,
@@ -59,27 +113,37 @@ def chat_json(
     temperature: float = 0.2,
     prefer: str | None = None,
 ) -> dict[str, Any]:
-    """Return a JSON object from the configured LLM.
+    """Return a JSON object from the configured LLM, with provider fallback.
 
-    `prefer` lets a caller request a specific provider regardless of the
-    LLM_PROVIDER routing — used by the fraud classifier to specifically
-    target DeepSeek V4 Pro for its long-context reasoning advantage.
-    Falls back to the auto-selected provider if the preferred one isn't
-    configured.
+    Routing:
+    1. Build a fallback chain that puts `prefer` first (when keyed), then the
+       auto-selected provider, then any other keyed providers, then heuristic.
+    2. Each provider gets retried on transient connection failures.
+    3. If a provider returns a parseable result, use it. Else move to the next.
+    4. Last resort: heuristic. Annotate the heuristic output with the *real*
+       upstream error so the UI surfaces something actionable.
     """
     auto_p = _provider()
-    chosen = prefer if (prefer and _has_key_for(prefer)) else auto_p
 
-    if chosen == "ensemble":
+    if (prefer or auto_p) == "ensemble":
         return _ensemble_json(system=system, user=user, schema_hint=schema_hint, temperature=temperature)
 
-    try:
-        if chosen != "heuristic":
-            return _call_provider(chosen, system=system, user=user,
-                                  schema_hint=schema_hint, temperature=temperature)
-    except Exception as e:
-        return _heuristic_json(user=user, schema_hint=schema_hint, error=str(e))
-    return _heuristic_json(user=user, schema_hint=schema_hint)
+    chain = _fallback_chain(prefer)
+    last_error: str | None = None
+    for provider in chain:
+        if provider == "heuristic":
+            return _heuristic_json(user=user, schema_hint=schema_hint, error=last_error)
+        try:
+            return _retry_provider_call(
+                provider, system=system, user=user,
+                schema_hint=schema_hint, temperature=temperature, retries=2,
+            )
+        except Exception as e:  # noqa: BLE001
+            last_error = f"[{provider}] {type(e).__name__}: {str(e)[:240]}"
+            print(f"[llm] {last_error} — falling back to next provider", flush=True)
+            continue
+    # Defensive: if we exit the loop without returning, fall to heuristic.
+    return _heuristic_json(user=user, schema_hint=schema_hint, error=last_error)
 
 
 def _has_key_for(provider: str) -> bool:
@@ -213,22 +277,32 @@ def _deepseek_json(*, system: str, user: str, schema_hint: str, temperature: flo
     `reasoning_effort` knob for chain-of-thought depth (disabled by default
     here because it adds ~100s of latency per call).
     """
+    import httpx
     from openai import OpenAI
 
-    # Hard 120s ceiling on the whole HTTP exchange. Long enough for the
-    # classifier and synthesis on the slow relay, short enough that a stuck
-    # call falls back to heuristics within ~2 minutes instead of hanging.
-    timeout_s = float(os.getenv("DEEPSEEK_TIMEOUT_S") or "120")
+    # Hard 600s ceiling. DeepSeek V4 with reasoning_effort=high routinely takes
+    # 90-180s on a 9k-char prompt; the cheap edge nodes also intermittently
+    # close idle TCP after ~60s, which would manifest as RemoteProtocolError.
+    # We mitigate by streaming + a generous timeout.
+    timeout_s = float(os.getenv("DEEPSEEK_TIMEOUT_S") or "600")
+    http_client = httpx.Client(
+        timeout=httpx.Timeout(timeout_s, connect=20.0),
+        # Keep-alive headers help the upstream LB hold the connection open
+        # while the model is reasoning silently.
+        headers={"Connection": "keep-alive"},
+    )
     client = OpenAI(
         api_key=os.getenv("DEEPSEEK_API_KEY"),
         base_url=os.getenv("DEEPSEEK_BASE_URL") or "https://api.deepseek.com",
         timeout=timeout_s,
         max_retries=0,
+        http_client=http_client,
     )
     model = os.getenv("DEEPSEEK_MODEL") or "deepseek-v4-pro"
-    # Default DISABLED — reasoning_effort=high added ~100s latency per call on
-    # the relay we tested, which makes a 10-call report unusable. Set to low/
-    # high/max via env if you need it for a specific batch.
+    # Default DISABLED — reasoning_effort=high adds 60-150s latency per call,
+    # which dramatically increases the chance of mid-flight disconnects on a
+    # 10-call report. Override with low/high/max via env if you specifically
+    # want deeper CoT for a one-off batch.
     effort = (os.getenv("DEEPSEEK_REASONING_EFFORT") or "disabled").strip().lower()
 
     prompt = (
@@ -241,22 +315,48 @@ def _deepseek_json(*, system: str, user: str, schema_hint: str, temperature: flo
     if effort in {"low", "high", "max"}:
         extra["reasoning_effort"] = effort
 
-    # Synthesis prompts emit a multi-section report JSON that can run 4-6k tokens.
-    # 8192 leaves headroom for verbose findings + claims + concerns_by_category.
     max_out = int(os.getenv("DEEPSEEK_MAX_TOKENS") or "8192")
+    use_stream = (os.getenv("DEEPSEEK_STREAM") or "1").strip() not in {"0", "false", "no"}
 
-    resp = client.chat.completions.create(
-        model=model,
-        temperature=temperature,
-        response_format={"type": "json_object"},
-        max_tokens=max_out,
-        messages=[
-            {"role": "system", "content": system},
-            {"role": "user", "content": prompt},
-        ],
-        **extra,
-    )
-    text = (resp.choices[0].message.content or "").strip()
+    if not use_stream:
+        resp = client.chat.completions.create(
+            model=model,
+            temperature=temperature,
+            response_format={"type": "json_object"},
+            max_tokens=max_out,
+            messages=[
+                {"role": "system", "content": system},
+                {"role": "user", "content": prompt},
+            ],
+            **extra,
+        )
+        text = (resp.choices[0].message.content or "").strip()
+    else:
+        # Streaming keeps the TCP connection warm — DeepSeek's edge nodes drop
+        # silent connections after ~60s, which is the root of the
+        # `RemoteProtocolError: Server disconnected` we saw on synthesis.
+        chunks: list[str] = []
+        stream = client.chat.completions.create(
+            model=model,
+            temperature=temperature,
+            response_format={"type": "json_object"},
+            max_tokens=max_out,
+            stream=True,
+            messages=[
+                {"role": "system", "content": system},
+                {"role": "user", "content": prompt},
+            ],
+            **extra,
+        )
+        for ev in stream:
+            try:
+                delta = ev.choices[0].delta.content or ""
+            except (IndexError, AttributeError):
+                delta = ""
+            if delta:
+                chunks.append(delta)
+        text = ("".join(chunks)).strip()
+
     if not text:
         raise RuntimeError(
             "DeepSeek returned empty content (response was likely truncated; "

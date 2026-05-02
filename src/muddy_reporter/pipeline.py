@@ -21,6 +21,7 @@ from pathlib import Path
 from .financials import build_financial_snapshot, compute_risk_grade, snapshot_to_brief
 from .fraud_classifier import classify_fraud_likelihood
 from .llm import chat_json, provider_info
+from .ml_scorer import ensemble as ml_ensemble, score as ml_score
 from .models import Citation, Finding, PipelineResult, Report
 from .prompts import (
     FINDINGS_SCHEMA_HINT,
@@ -557,6 +558,73 @@ def _build_evidence_index(findings: list[Finding], sources_brief: list[dict]) ->
     return ordered
 
 
+def _build_evidence_summary(findings: list[Finding], sources_brief: list[dict]) -> list[dict]:
+    """Flat per-citation evidence list — requirement #4: evidence tied to source documents.
+
+    One row per (finding × citation) so a reader can scan a single table and see
+    exactly which excerpt in which filing supports each alleged red flag. This
+    is what the assignment calls an "evidence summary tied to source documents"
+    and what a forensic analyst expects to be able to fact-check against.
+
+    Rows are ordered by (label severity, confidence, finding title) so the
+    strongest evidence (a `fact` cited in a 10-K with `high` confidence) bubbles
+    to the top of the list.
+    """
+    src_lookup = {s["doc_id"]: s for s in sources_brief}
+    label_rank = {"fact": 0, "inference": 1, "question": 2, "speculation": 3}
+    conf_rank = {"high": 0, "medium": 1, "low": 2}
+
+    rows: list[dict] = []
+    for f in findings:
+        cits = f.citations or []
+        if not cits:
+            # Surface findings that lack a citation so the reader sees the gap
+            # rather than having the finding silently disappear from the table.
+            rows.append({
+                "finding_title": f.title,
+                "label": f.label,
+                "confidence": f.confidence,
+                "category": f.category,
+                "claim_or_observation": f.claim_or_observation or "",
+                "why_it_matters": f.why_it_matters or "",
+                "doc_id": None,
+                "filing_type": None,
+                "filing_date": None,
+                "url": None,
+                "excerpt": None,
+                "missing_citation": True,
+            })
+            continue
+        for c in cits:
+            src = src_lookup.get(c.doc_id, {})
+            excerpt = (c.excerpt or "").strip()
+            if len(excerpt) > 360:
+                excerpt = excerpt[:357].rstrip() + "…"
+            rows.append({
+                "finding_title": f.title,
+                "label": f.label,
+                "confidence": f.confidence,
+                "category": f.category,
+                "claim_or_observation": (f.claim_or_observation or "")[:280],
+                "why_it_matters": (f.why_it_matters or "")[:280],
+                "doc_id": c.doc_id,
+                "filing_type": src.get("filing_type"),
+                "filing_date": src.get("filing_date"),
+                "url": c.url or src.get("url"),
+                "excerpt": excerpt,
+                "missing_citation": False,
+            })
+
+    rows.sort(
+        key=lambda r: (
+            label_rank.get(r["label"], 9),
+            conf_rank.get(r["confidence"], 9),
+            r["finding_title"] or "",
+        )
+    )
+    return rows
+
+
 _HEURISTIC_CONCLUSION_MARKERS = (
     "without an LLM API key",
     "heuristic-fallback mode",
@@ -733,6 +801,25 @@ def _build_report(
             "mitigating_factors": [],
         }
 
+    # 2b. Deterministic ML scorer (logistic regression on engineered features).
+    #     Runs alongside the LLM classifier so the report has *two independent*
+    #     misrepresentation-risk estimates that can be cross-checked.
+    label_counts: dict[str, int] = {}
+    for f in findings:
+        lbl = getattr(f, "label", None) or "question"
+        label_counts[lbl] = label_counts.get(lbl, 0) + 1
+    ml_result_obj = ml_score(financial_brief=financial_brief, llm_findings_summary=label_counts)
+    ml_result_dict = {
+        "probability": ml_result_obj.probability,
+        "verdict": ml_result_obj.verdict,
+        "confidence": ml_result_obj.confidence,
+        "model": ml_result_obj.model,
+        "coverage": ml_result_obj.coverage,
+        "feature_contributions": ml_result_obj.feature_contributions,
+        "notes": ml_result_obj.notes,
+    }
+    fraud_ensemble = ml_ensemble(classifier_result, ml_result_obj)
+
     # 3. Synthesis — combine financial brief + classifier verdict into prompt.
     fin_brief_str = None
     if financial_brief:
@@ -748,6 +835,17 @@ def _build_report(
                 "similar_to": classifier_result.get("similar_to"),
                 "key_red_flags": classifier_result.get("key_red_flags"),
             }
+        payload_fin["deterministic_ml_score"] = {
+            "probability": ml_result_dict["probability"],
+            "verdict": ml_result_dict["verdict"],
+            "confidence": ml_result_dict["confidence"],
+            "model": ml_result_dict["model"],
+        }
+        payload_fin["ensemble_verdict"] = {
+            "probability": fraud_ensemble["combined_probability"],
+            "verdict": fraud_ensemble["verdict"],
+            "agreement": fraud_ensemble["agreement"],
+        }
         fin_brief_str = json.dumps(payload_fin, indent=2, default=str)
 
     user = build_synthesis_user_prompt(
@@ -805,6 +903,7 @@ def _build_report(
         (financial_brief or {}).get("anomalies"),
     )
     evidence_index = _build_evidence_index(findings, src_brief)
+    evidence_summary = _build_evidence_summary(findings, src_brief)
     sources_serialized = [
         {
             "doc_id": s["doc_id"],
@@ -849,9 +948,12 @@ def _build_report(
         forensic_scores=(financial_brief or {}).get("forensic_scores") or {},
         risk_grade=risk_dict,
         fraud_classifier=classifier_result,
+        ml_scorer=ml_result_dict,
+        fraud_ensemble=fraud_ensemble,
         provider_info=provider_info(),
         sources_analyzed=sources_serialized,
         evidence_index=evidence_index,
+        evidence_summary=evidence_summary,
     )
 
 

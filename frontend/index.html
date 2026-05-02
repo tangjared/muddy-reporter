@@ -3,7 +3,11 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Muddy Reporter — Forensic Equity Research</title>
+  <title>Muddy Reporter — Forensic Equity Research · v2 GS</title>
+  <meta name="version" content="v2-goldman-2026-05-02" />
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+  <meta http-equiv="Pragma" content="no-cache" />
+  <meta http-equiv="Expires" content="0" />
   <meta name="description" content="Automated forensic, skeptical investigative research notes from public SEC filings." />
 
   <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -24,41 +28,57 @@
             mono: ['"JetBrains Mono"', 'ui-monospace', 'SFMono-Regular', 'Menlo'],
           },
           colors: {
+            // Goldman-inspired institutional palette: pure white paper,
+            // deep corporate navy as primary brand, restrained gold accent,
+            // cool-gray hairlines. Reds/ambers retained ONLY as semantic
+            // risk signals (never decorative).
             paper: {
-              DEFAULT: '#fafaf7',  // page background, warm off-white
-              deep:    '#f3f1ec',  // section dividers
+              DEFAULT: '#ffffff',  // page background, pure white
+              deep:    '#f4f5f7',  // section dividers, cool light gray
               card:    '#ffffff',  // cards
-              tint:    '#f8f6f1',
+              tint:    '#f8f9fb',  // very faint blue-gray tint
             },
             ink: {
-              DEFAULT: '#0a0a0a',  // headlines (near-black)
-              body:    '#272525',  // body text (rich dark gray)
-              muted:   '#6e6a64',  // metadata
-              dim:     '#a8a39c',  // dimmest
+              DEFAULT: '#0a1f44',  // headlines — corporate navy
+              body:    '#1f2937',  // body text — slate
+              muted:   '#6b7280',  // metadata
+              dim:     '#9ca3af',
             },
             line: {
-              DEFAULT: '#e7e3da',  // hairline
-              strong:  '#d3cdc0',
+              DEFAULT: '#e5e7eb',  // cool hairline
+              strong:  '#cbd5e1',
+            },
+            navy: {
+              400: '#1e3766',
+              500: '#0a1f44',  // brand primary
+              600: '#08193a',
+              700: '#061633',
+              800: '#040f25',
+            },
+            gold: {
+              500: '#b29869',  // restrained Goldman-tan accent
+              600: '#9a8155',
+              700: '#7c6740',
             },
             blood: {
-              500: '#b91c1c',
-              600: '#991b1b',
-              700: '#7f1d1d',
+              500: '#9b1c1c',  // semantic: high-risk alert (slightly desaturated for institutional feel)
+              600: '#7f1d1d',
+              700: '#5b1414',
             },
             amber2: {
-              500: '#b45309',
-              600: '#92400e',
+              500: '#a16207',  // semantic: caution
+              600: '#854d0e',
             },
             azure: {
-              500: '#1d4ed8',
+              500: '#1e40af',  // semantic: data / charts
               600: '#1e3a8a',
             },
             jade: {
-              500: '#047857',
-              600: '#065f46',
+              500: '#065f46',  // semantic: clean / mitigating
+              600: '#064e3b',
             },
             violet2: {
-              500: '#6d28d9',
+              500: '#5b21b6',
             },
           },
         },
@@ -69,39 +89,39 @@
   <style>
     :root { color-scheme: light; }
     html, body {
-      background: #fafaf7;
-      color: #272525;
+      background: #ffffff;
+      color: #1f2937;
       font-family: Inter, ui-sans-serif, system-ui;
       -webkit-font-smoothing: antialiased;
       text-rendering: optimizeLegibility;
     }
 
-    /* paper grain — barely-there tan noise */
+    /* paper grain — barely-perceptible cool gray, kept for depth without warmth */
     body::before {
       content: '';
       position: fixed; inset: 0;
-      background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='200' height='200'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0.4  0 0 0 0 0.35  0 0 0 0 0.27  0 0 0 0.04 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+      background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='200' height='200'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0.04  0 0 0 0 0.07  0 0 0 0 0.15  0 0 0 0.02 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
       pointer-events: none;
       z-index: 0;
       mix-blend-mode: multiply;
-      opacity: 0.5;
+      opacity: 0.35;
     }
 
-    /* subtle paper edge highlight on hero */
+    /* hero — almost imperceptible navy/gold corner wash */
     .hero-bg {
       background:
-        radial-gradient(900px 480px at 50% -10%, rgba(185, 28, 28, 0.06), transparent 70%),
-        radial-gradient(700px 400px at 50% 110%, rgba(29, 78, 216, 0.04), transparent 70%);
+        radial-gradient(900px 480px at 50% -20%, rgba(10, 31, 68, 0.06), transparent 70%),
+        radial-gradient(700px 400px at 50% 110%, rgba(178, 152, 105, 0.05), transparent 70%);
     }
 
-    /* TYPOGRAPHY — strong contrast between title and body */
+    /* TYPOGRAPHY — institutional editorial: navy display serif, slate sans body */
     .display {
       font-family: 'Source Serif 4', ui-serif, Georgia;
       font-feature-settings: 'ss01', 'ss02', 'lnum';
       font-optical-sizing: auto;
-      letter-spacing: -0.025em;
-      line-height: 1.02;
-      color: #0a0a0a;
+      letter-spacing: -0.022em;
+      line-height: 1.04;
+      color: #0a1f44;
     }
     .display-italic {
       font-family: 'Source Serif 4', ui-serif, Georgia;
@@ -110,62 +130,62 @@
     .lead {
       font-family: 'Source Serif 4', ui-serif, Georgia;
       font-weight: 400;
-      font-size: 1.4rem;
-      line-height: 1.5;
-      color: #1a1816;
+      font-size: 1.35rem;
+      line-height: 1.55;
+      color: #1f2937;
     }
     .body-text {
       font-family: Inter, ui-sans-serif;
       font-weight: 400;
-      font-size: 0.97rem;
+      font-size: 0.95rem;
       line-height: 1.65;
-      color: #272525;
+      color: #1f2937;
     }
     .eyebrow {
       font-family: Inter, ui-sans-serif;
-      font-weight: 500;
-      font-size: 11px;
+      font-weight: 600;
+      font-size: 10.5px;
       letter-spacing: 0.18em;
       text-transform: uppercase;
-      color: #6e6a64;
+      color: #6b7280;
     }
     .mono { font-family: 'JetBrains Mono', ui-monospace; }
 
-    /* hairline borders (light) */
-    .hl  { border-color: rgba(10, 10, 10, 0.08); }
-    .hl2 { border-color: rgba(10, 10, 10, 0.18); }
+    /* hairline borders (cool gray, very subtle) */
+    .hl  { border-color: rgba(10, 31, 68, 0.10); }
+    .hl2 { border-color: rgba(10, 31, 68, 0.20); }
 
-    /* light scrollbars */
+    /* scrollbars — neutral gray */
     ::-webkit-scrollbar { width: 10px; height: 10px; }
-    ::-webkit-scrollbar-thumb { background: #cdc7b8; border-radius: 8px; }
-    ::-webkit-scrollbar-thumb:hover { background: #b8b1a0; }
+    ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 8px; }
+    ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
     ::-webkit-scrollbar-track { background: transparent; }
 
-    /* TOC active state */
+    /* TOC active state — gold accent rule (institutional) */
     .toc-link[data-active="true"] {
-      color: #0a0a0a;
-      border-left-color: #b91c1c;
-      font-weight: 500;
+      color: #0a1f44;
+      border-left-color: #b29869;
+      font-weight: 600;
     }
 
-    /* live red pulse */
+    /* live status pulse — gold (no aggressive red) */
     .pulse-dot {
       width: 8px; height: 8px; border-radius: 999px;
-      background: #b91c1c; box-shadow: 0 0 0 0 rgba(185,28,28,0.55);
-      animation: pulse 1.6s infinite;
+      background: #b29869; box-shadow: 0 0 0 0 rgba(178, 152, 105, 0.55);
+      animation: pulse 1.8s infinite;
     }
     @keyframes pulse {
-      0%   { box-shadow: 0 0 0 0 rgba(185,28,28,0.55); }
-      70%  { box-shadow: 0 0 0 10px rgba(185,28,28,0); }
-      100% { box-shadow: 0 0 0 0 rgba(185,28,28,0); }
+      0%   { box-shadow: 0 0 0 0 rgba(178, 152, 105, 0.55); }
+      70%  { box-shadow: 0 0 0 10px rgba(178, 152, 105, 0); }
+      100% { box-shadow: 0 0 0 0 rgba(178, 152, 105, 0); }
     }
 
-    /* citation quote bar — subtle blue */
+    /* citation quote bar — navy left rule, neutral background */
     .cite-quote {
-      border-left: 3px solid #1d4ed8;
+      border-left: 3px solid #0a1f44;
       padding: 10px 14px;
-      background: #f5f7fb;
-      border-radius: 4px;
+      background: #f4f5f7;
+      border-radius: 2px;
       font-size: 13px;
       color: #1f2937;
       white-space: pre-wrap;
@@ -173,25 +193,30 @@
       font-family: 'JetBrains Mono', ui-monospace;
     }
 
-    /* big numbered list for red flags */
+    /* numbered red flags — soft slate so the actual headline shouts */
     .flag-num {
       font-family: 'Source Serif 4', ui-serif;
       font-weight: 700;
       font-size: 4.5rem;
       line-height: 1;
-      color: #c8c4ba;
+      color: #cbd5e1;
       letter-spacing: -0.03em;
     }
 
-    /* Risk Grade hero card */
+    /* Risk Grade hero card — angular, near-square, institutional */
     .grade-card {
-      background: #fff;
-      border: 1px solid #e7e3da;
-      border-radius: 16px;
+      background: #ffffff;
+      border: 1px solid #e5e7eb;
+      border-radius: 4px;
       padding: 18px 22px;
       min-width: 220px;
       position: relative;
       overflow: hidden;
+    }
+    .grade-card::after {
+      content: '';
+      position: absolute; left: 0; top: 0; bottom: 0; width: 3px;
+      background: #b29869;
     }
     .grade-letter {
       font-family: 'Source Serif 4', ui-serif;
@@ -200,23 +225,24 @@
       line-height: 0.95;
       letter-spacing: -0.04em;
     }
-    .grade-A { color: #047857; }
-    .grade-B { color: #65a30d; }
-    .grade-C { color: #b45309; }
-    .grade-D { color: #c2410c; }
-    .grade-F { color: #b91c1c; }
+    /* Grade colors stay semantically bound to risk; tones desaturated for institutional feel */
+    .grade-A { color: #065f46; }
+    .grade-B { color: #4d7c0f; }
+    .grade-C { color: #a16207; }
+    .grade-D { color: #b45309; }
+    .grade-F { color: #9b1c1c; }
 
-    .grade-bar { height: 5px; background: #f1ee e7; border-radius: 999px; overflow: hidden; }
+    .grade-bar { height: 4px; background: #f4f5f7; border-radius: 0; overflow: hidden; }
     .grade-bar > span {
-      display: block; height: 100%; border-radius: 999px;
-      background: linear-gradient(90deg, #047857 0%, #b45309 50%, #b91c1c 100%);
+      display: block; height: 100%; border-radius: 0;
+      background: linear-gradient(90deg, #065f46 0%, #a16207 50%, #9b1c1c 100%);
     }
 
-    /* Forensic score tile */
+    /* Forensic score tile — squared, hairline border */
     .score-tile {
-      background: #fff;
-      border: 1px solid #e7e3da;
-      border-radius: 14px;
+      background: #ffffff;
+      border: 1px solid #e5e7eb;
+      border-radius: 4px;
       padding: 18px;
     }
     .score-tile .score-num {
@@ -226,22 +252,22 @@
       line-height: 1;
       letter-spacing: -0.02em;
     }
-    .signal-good { color: #047857; background: #ecfdf5; border: 1px solid #86efac; }
-    .signal-warn { color: #b45309; background: #fffbeb; border: 1px solid #fcd34d; }
-    .signal-bad  { color: #b91c1c; background: #fef2f2; border: 1px solid #fca5a5; }
-    .signal-na   { color: #6e6a64; background: #f3f1ec; border: 1px solid #d3cdc0; }
+    .signal-good { color: #065f46; background: #f0fdf4; border: 1px solid #bbf7d0; }
+    .signal-warn { color: #a16207; background: #fefce8; border: 1px solid #fde68a; }
+    .signal-bad  { color: #9b1c1c; background: #fef2f2; border: 1px solid #fecaca; }
+    .signal-na   { color: #6b7280; background: #f4f5f7; border: 1px solid #e5e7eb; }
 
     /* Featured Investigation card */
     .case-card {
-      background: #fff;
-      border: 1px solid #e7e3da;
-      border-radius: 16px;
+      background: #ffffff;
+      border: 1px solid #e5e7eb;
+      border-radius: 4px;
       padding: 18px;
       text-align: left;
       transition: border-color 0.15s, transform 0.15s;
     }
     .case-card:hover {
-      border-color: #b91c1c;
+      border-color: #0a1f44;
       transform: translateY(-2px);
     }
     .case-card .firm {
@@ -250,26 +276,32 @@
       font-weight: 600;
       letter-spacing: 0.12em;
       text-transform: uppercase;
+      color: #0a1f44;
     }
 
-    /* ML Fraud probability card (in report hero) */
+    /* ML/Fraud risk card — institutional, gold corner stripe + 'ML' tag */
     .ml-card {
-      background: linear-gradient(180deg, #ffffff 0%, #faf8f3 100%);
-      border: 1px solid #e7e3da;
-      border-radius: 16px;
+      background: #ffffff;
+      border: 1px solid #e5e7eb;
+      border-radius: 4px;
       padding: 18px 22px;
       min-width: 240px;
       position: relative;
+    }
+    .ml-card::after {
+      content: '';
+      position: absolute; left: 0; top: 0; bottom: 0; width: 3px;
+      background: #b29869;
     }
     .ml-card::before {
       content: 'ML';
       position: absolute; top: 10px; right: 12px;
       font-family: 'JetBrains Mono', ui-monospace;
-      font-size: 9px; letter-spacing: 0.15em;
-      color: #6d28d9;
-      background: rgba(109, 40, 217, 0.08);
-      border: 1px solid rgba(109, 40, 217, 0.25);
-      padding: 1px 6px; border-radius: 4px;
+      font-size: 9px; letter-spacing: 0.18em; font-weight: 600;
+      color: #b29869;
+      background: rgba(178, 152, 105, 0.08);
+      border: 1px solid rgba(178, 152, 105, 0.30);
+      padding: 1px 6px; border-radius: 2px;
     }
     .ml-prob {
       font-family: 'Source Serif 4', ui-serif;
@@ -278,70 +310,80 @@
       line-height: 1;
       letter-spacing: -0.04em;
     }
-    .verdict-clean       { color: #047857; background: #ecfdf5; border-color: #86efac; }
-    .verdict-watch       { color: #b45309; background: #fffbeb; border-color: #fcd34d; }
-    .verdict-suspicious  { color: #c2410c; background: #fff7ed; border-color: #fdba74; }
-    .verdict-likely_fraud { color: #b91c1c; background: #fef2f2; border-color: #fca5a5; }
+    .verdict-clean       { color: #065f46; background: #f0fdf4; border-color: #bbf7d0; }
+    .verdict-watch       { color: #a16207; background: #fefce8; border-color: #fde68a; }
+    .verdict-suspicious  { color: #9a3412; background: #fff7ed; border-color: #fed7aa; }
+    .verdict-likely_fraud { color: #9b1c1c; background: #fef2f2; border-color: #fecaca; }
 
-    /* subtle gradient outline on hero CTA */
+    /* hero CTA — squared, navy frame, no gradient */
     .grad-border {
       position: relative;
-      transition: transform 0.2s ease;
+      transition: border-color 0.2s ease, box-shadow 0.2s ease;
+      border: 1px solid #cbd5e1;
     }
-    .grad-border::before {
-      content: '';
-      position: absolute; inset: 0; border-radius: 14px; padding: 1.5px;
-      background: linear-gradient(135deg, #b91c1c, #1d4ed8 60%, #6d28d9);
-      -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
-      -webkit-mask-composite: xor; mask-composite: exclude;
-      pointer-events: none;
-      opacity: 0.6;
+    .grad-border:focus-within {
+      border-color: #0a1f44;
+      box-shadow: 0 0 0 3px rgba(10, 31, 68, 0.08);
     }
-    .grad-border:focus-within::before { opacity: 1; }
-    .grad-border:focus-within { transform: translateY(-1px); }
 
-    /* logo container — clean ring */
+    /* logo container — squared, clean */
     .logo-ring {
       width: 64px; height: 64px;
-      background: #fff;
-      border: 1px solid rgba(0,0,0,0.10);
-      border-radius: 14px;
+      background: #ffffff;
+      border: 1px solid #cbd5e1;
+      border-radius: 4px;
       display: flex; align-items: center; justify-content: center;
       overflow: hidden;
-      box-shadow: 0 1px 0 rgba(0,0,0,0.03);
     }
     .logo-ring img { width: 80%; height: 80%; object-fit: contain; }
     .logo-fallback {
       font-family: 'Source Serif 4', ui-serif;
       font-weight: 700;
       font-size: 1.6rem;
-      color: #6e6a64;
+      color: #0a1f44;
     }
 
-    /* card surface */
+    /* card surface — squared corners, hairline border */
     .card {
-      background: #fff;
-      border: 1px solid #e7e3da;
-      border-radius: 14px;
+      background: #ffffff;
+      border: 1px solid #e5e7eb;
+      border-radius: 4px;
     }
     .card-tinted {
-      background: #f8f6f1;
-      border: 1px solid #e7e3da;
-      border-radius: 14px;
+      background: #f4f5f7;
+      border: 1px solid #e5e7eb;
+      border-radius: 4px;
     }
 
-    /* "why it matters" block */
+    /* "why it matters" block — gold left rule (alerts without screaming red) */
     .matters-block {
-      border-left: 3px solid #b91c1c;
+      border-left: 3px solid #b29869;
       padding: 8px 14px;
-      background: #fef7f7;
-      border-radius: 0 6px 6px 0;
+      background: #faf8f3;
+      border-radius: 0;
     }
+
+    /* page header brand stripe — Goldman-style gold underline */
+    .brand-stripe {
+      background: linear-gradient(90deg, transparent 0%, #b29869 30%, #b29869 70%, transparent 100%);
+      height: 1px;
+    }
+
+    /* primary navy CTA used across the app */
+    .btn-primary {
+      background: #0a1f44;
+      color: #ffffff;
+      font-weight: 500;
+      letter-spacing: 0.01em;
+      transition: background 0.15s;
+    }
+    .btn-primary:hover { background: #08193a; }
+    .btn-primary:disabled { background: #cbd5e1; color: #6b7280; cursor: not-allowed; }
 
     @media print {
       body::before { display: none; }
       .no-print { display: none !important; }
-      .hl, .hl2 { border-color: rgba(0,0,0,0.18); }
+      .hl, .hl2 { border-color: rgba(10, 31, 68, 0.20); }
       .card { box-shadow: none; }
     }
   </style>
@@ -353,53 +395,58 @@
   <!-- ============================================================
        NAV BAR
        ============================================================ -->
-  <header class="no-print sticky top-0 z-30 backdrop-blur bg-paper/85 border-b hl">
-    <div class="max-w-7xl mx-auto px-6 h-14 flex items-center justify-between">
-      <button @click="goLanding()" class="flex items-center gap-2.5 group">
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" class="text-blood-500">
-          <circle cx="12" cy="12" r="9"/>
-          <circle cx="12" cy="12" r="4"/>
-          <path d="M12 3v3M12 18v3M3 12h3M18 12h3"/>
-        </svg>
-        <span class="display text-[17px] font-semibold tracking-tight">Muddy <span class="text-blood-500">Reporter</span></span>
+  <header class="no-print sticky top-0 z-30 bg-white border-b hl">
+    <div class="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
+      <button @click="goLanding()" class="flex items-center gap-3 group">
+        <!-- Squared monogram in navy with gold corner mark — institutional brand cue -->
+        <span class="relative inline-flex items-center justify-center w-8 h-8 bg-navy-500 text-white">
+          <span class="display text-[15px] font-bold tracking-tight">MR</span>
+          <span class="absolute top-0 right-0 w-1.5 h-1.5 bg-gold-500"></span>
+        </span>
+        <div class="flex flex-col leading-tight">
+          <span class="display text-[17px] font-semibold tracking-tight text-navy-500">Muddy Reporter</span>
+          <span class="mono text-[9px] uppercase tracking-[0.22em] text-ink-muted -mt-0.5">Forensic Equity Research</span>
+        </div>
       </button>
-      <div class="flex items-center gap-3">
-        <span class="hidden sm:flex items-center gap-1.5 mono text-[11px] uppercase tracking-wider text-ink-muted">
+      <div class="flex items-center gap-5">
+        <span class="hidden sm:flex items-center gap-1.5 mono text-[10.5px] uppercase tracking-[0.15em] text-ink-muted">
           <span class="inline-block w-1.5 h-1.5 rounded-full"
                 :class="['gemini','openai','deepseek','ensemble'].includes(provider.provider) ? 'bg-jade-500' : 'bg-amber2-500'"></span>
           <span x-text="provider.provider || '—'"></span>
           <span class="text-line-strong">·</span>
           <span x-text="provider.model || ''"></span>
         </span>
-        <a href="/api/docs" target="_blank" class="hidden sm:inline-block text-xs text-ink-muted hover:text-ink">API</a>
+        <span class="hidden sm:inline-block mono text-[9.5px] uppercase tracking-[0.18em] px-2 py-0.5 border border-gold-500/40 text-gold-700 bg-gold-500/[0.06] font-semibold">v2 · GS</span>
+        <a href="/api/docs" target="_blank" class="hidden sm:inline-block mono text-[10.5px] uppercase tracking-[0.18em] text-ink-muted hover:text-navy-500">API</a>
       </div>
     </div>
+    <div class="brand-stripe"></div>
   </header>
 
   <!-- ============================================================
        LANDING VIEW
        ============================================================ -->
   <main x-show="view === 'landing'" class="hero-bg">
-    <section class="max-w-5xl mx-auto px-6 pt-28 pb-20 text-center">
-      <div class="inline-flex items-center gap-2 mono text-[11px] uppercase tracking-[0.2em] text-ink-muted mb-7 border hl rounded-full px-3 py-1 bg-white">
+    <section class="max-w-5xl mx-auto px-6 pt-24 pb-20 text-center">
+      <div class="inline-flex items-center gap-2 mono text-[10.5px] uppercase tracking-[0.22em] text-ink-muted mb-8 border hl px-3 py-1.5 bg-white">
         <span class="pulse-dot"></span>
         Forensic Research · Public Sources Only
       </div>
 
-      <h1 class="display text-[64px] sm:text-[80px] md:text-[88px] font-bold mb-7">
-        Automated <span class="display-italic font-semibold text-blood-500">short-seller</span><br/>
+      <h1 class="display text-[60px] sm:text-[76px] md:text-[84px] font-bold mb-7 text-navy-500">
+        Automated <span class="display-italic font-semibold text-gold-600">short-seller</span><br/>
         research notes.
       </h1>
       <p class="lead max-w-2xl mx-auto mb-12 text-ink-body">
-        Type a ticker. We pull SEC filings, run forensic anomaly checks against XBRL data,
+        Enter a ticker. We pull SEC filings, run forensic anomaly checks against XBRL data,
         and draft a citation-backed Muddy&nbsp;Waters-style investigative note —
-        with every claim graded for confidence and tied to a verbatim source quote.
+        every claim graded for confidence and tied to a verbatim source quote.
       </p>
 
-      <!-- Big input — radically simple -->
-      <form @submit.prevent="generate()" class="grad-border max-w-2xl mx-auto rounded-2xl bg-white">
-        <div class="flex items-center px-5 py-3.5 gap-3">
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" class="text-ink-dim shrink-0">
+      <!-- Institutional input: squared, navy frame on focus -->
+      <form @submit.prevent="generate()" class="grad-border max-w-2xl mx-auto bg-white">
+        <div class="flex items-center px-4 py-2.5 gap-3">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" class="text-ink-dim shrink-0">
             <circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/>
           </svg>
           <input
@@ -409,16 +456,16 @@
             placeholder="Enter ticker (e.g. LKNCY, AAPL, NKLA)"
             autocomplete="off"
             autofocus
-            class="flex-1 bg-transparent outline-none border-0 text-2xl mono placeholder-ink-dim py-1.5 text-ink"
+            class="flex-1 bg-transparent outline-none border-0 text-2xl mono placeholder-ink-dim py-1.5 text-navy-500"
             :disabled="isLoading"
           />
           <button
             type="submit"
             :disabled="isLoading || !ticker.trim()"
-            class="bg-blood-600 hover:bg-blood-500 disabled:bg-line disabled:text-ink-dim text-white font-medium px-5 py-2.5 rounded-xl transition flex items-center gap-2"
+            class="btn-primary px-5 py-2.5 flex items-center gap-2 mono text-[12px] uppercase tracking-[0.16em]"
           >
             <span>Investigate</span>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
           </button>
         </div>
       </form>
@@ -439,7 +486,7 @@
     <section class="border-t hl bg-paper-deep">
       <div class="max-w-6xl mx-auto px-6 py-20">
         <div class="text-center mb-10">
-          <div class="eyebrow text-blood-500 mb-3">Featured investigations</div>
+          <div class="eyebrow text-gold-600 mb-3">Featured investigations</div>
           <h2 class="display text-[42px] font-bold mb-3">Famous short-seller cases</h2>
           <p class="body-text text-ink-muted max-w-2xl mx-auto">
             Each card runs the full pipeline against the actual SEC filings of a company that was
@@ -469,7 +516,7 @@
               <p class="text-[13px] text-ink-body leading-relaxed mb-3" x-text="c.thesis"></p>
               <div class="flex items-center justify-between text-[11px]">
                 <span class="text-ink-muted mono" x-text="c.outcome"></span>
-                <span class="text-blood-500 group-hover:translate-x-0.5 transition mono">Investigate →</span>
+                <span class="text-navy-500 group-hover:translate-x-0.5 transition mono font-medium">Investigate →</span>
               </div>
             </button>
           </template>
@@ -504,17 +551,17 @@
     <section class="border-t hl bg-paper-tint">
       <div class="max-w-6xl mx-auto px-6 py-16 grid md:grid-cols-3 gap-10">
         <div>
-          <div class="eyebrow text-blood-500 mb-3">01 — Ingest</div>
+          <div class="eyebrow text-navy-500 mb-3">01 — Ingest</div>
           <h3 class="display text-[28px] font-semibold mb-2">Public filings, no shortcuts</h3>
           <p class="body-text">SEC EDGAR 10-K / 10-Q / 8-K for US filers, 20-F / 6-K / F-1 for foreign issuers, plus the full XBRL company-facts feed.</p>
         </div>
         <div>
-          <div class="eyebrow text-amber2-500 mb-3">02 — Detect</div>
+          <div class="eyebrow text-gold-600 mb-3">02 — Detect</div>
           <h3 class="display text-[28px] font-semibold mb-2">Deterministic anomaly engine</h3>
           <p class="body-text">Rule-based checks for AR vs revenue, NI vs operating cash flow, gross-margin jumps, inventory build, goodwill/equity ratio. No LLM in this layer.</p>
         </div>
         <div>
-          <div class="eyebrow text-azure-500 mb-3">03 — Verify</div>
+          <div class="eyebrow text-jade-500 mb-3">03 — Verify</div>
           <h3 class="display text-[28px] font-semibold mb-2">Citation gate</h3>
           <p class="body-text">Every "fact" or "inference" must include a verbatim source quote. Findings without citations are auto-demoted to "open question".</p>
         </div>
@@ -684,16 +731,42 @@
                 </div>
               </div>
 
-              <!-- ML Fraud Classifier (DeepSeek V4 Pro few-shot) -->
-              <div x-show="report.fraud_classifier && report.fraud_classifier.fraud_probability !== undefined"
+              <!-- ML Ensemble: combined LLM few-shot + deterministic LR scorer -->
+              <div x-show="hasFraudEnsemble()"
                    x-data="{ open: false }" class="ml-card">
-                <div class="eyebrow">Fraud likelihood</div>
+                <div class="flex items-baseline justify-between gap-3">
+                  <div class="eyebrow">Misrepresentation risk</div>
+                  <span class="mono text-[9px] uppercase tracking-wider px-1.5 py-0.5 rounded border"
+                        :class="ensembleAgreement() === 'agree' ? 'border-jade-500/40 text-jade-600 bg-jade-500/8'
+                              : ensembleAgreement() === 'disagree' ? 'border-amber2-500/40 text-amber2-600 bg-amber2-500/8'
+                              : 'border-ink-dim/40 text-ink-muted bg-paper-tint'"
+                        x-text="ensembleAgreement()"></span>
+                </div>
                 <div class="ml-prob mt-1"
-                     :class="verdictTextClass(report.fraud_classifier?.verdict)"
-                     x-text="((report.fraud_classifier?.fraud_probability || 0) * 100).toFixed(0) + '%'"></div>
+                     :class="verdictTextClass(report.fraud_ensemble?.verdict)"
+                     x-text="((report.fraud_ensemble?.combined_probability || 0) * 100).toFixed(0) + '%'"></div>
                 <div class="mt-2 inline-block mono text-[10px] uppercase tracking-wider px-2 py-1 rounded font-medium border"
-                     :class="'verdict-' + (report.fraud_classifier?.verdict || 'watch')"
-                     x-text="(report.fraud_classifier?.verdict || 'watch').replace('_',' ')"></div>
+                     :class="'verdict-' + (report.fraud_ensemble?.verdict || 'watch').replace('likely_misrepresentation','likely_fraud')"
+                     x-text="(report.fraud_ensemble?.verdict || 'watch').replace(/_/g,' ')"></div>
+
+                <div class="mt-3 grid grid-cols-2 gap-2">
+                  <div class="p-2 rounded bg-paper-tint border hl">
+                    <div class="text-[9px] mono uppercase tracking-wider text-ink-muted">LLM few-shot</div>
+                    <div class="display text-lg font-semibold mt-0.5"
+                         x-text="(((report.fraud_ensemble?.votes?.llm_few_shot?.probability) ?? 0) * 100).toFixed(0) + '%'"></div>
+                    <div class="text-[10px] text-ink-muted mt-0.5">
+                      <span x-text="(report.fraud_ensemble?.votes?.llm_few_shot?.confidence || '—')"></span>
+                    </div>
+                  </div>
+                  <div class="p-2 rounded bg-paper-tint border hl">
+                    <div class="text-[9px] mono uppercase tracking-wider text-ink-muted">LR scorer</div>
+                    <div class="display text-lg font-semibold mt-0.5"
+                         x-text="(((report.fraud_ensemble?.votes?.ml_logreg?.probability) ?? 0) * 100).toFixed(0) + '%'"></div>
+                    <div class="text-[10px] text-ink-muted mt-0.5">
+                      cov <span x-text="((report.fraud_ensemble?.votes?.ml_logreg?.coverage ?? 0) * 100).toFixed(0)"></span>%
+                    </div>
+                  </div>
+                </div>
                 <div class="mt-2 text-[10px] mono text-ink-muted">
                   Few-shot · <span x-text="fraudModelLabel(report.fraud_classifier)"></span>
                 </div>
@@ -733,6 +806,34 @@
                         <li x-text="r"></li>
                       </template>
                     </ul>
+                  </div>
+
+                  <!-- Deterministic LR scorer breakdown -->
+                  <div x-show="(report.ml_scorer?.feature_contributions || []).length" class="pt-3 mt-3 border-t hl">
+                    <div class="eyebrow mb-1.5">LR feature contributions</div>
+                    <div class="text-[11px] text-ink-muted mb-2">
+                      Top weighted features driving the deterministic score (positive = pushes toward misrepresentation, negative = mitigating). Coverage:
+                      <span class="mono" x-text="((report.ml_scorer?.coverage ?? 0) * 100).toFixed(0)"></span>%.
+                    </div>
+                    <div class="space-y-1">
+                      <template x-for="c in (report.ml_scorer?.feature_contributions || []).slice(0, 6)" :key="c.feature">
+                        <div class="flex items-baseline justify-between gap-3">
+                          <div class="min-w-0">
+                            <span class="mono text-[11px]" x-text="c.feature"></span>
+                            <span class="ml-1 text-[10px] text-ink-muted" x-text="c.observed ? ('= ' + (c.value !== null ? c.value : '—')) : '(missing)'"></span>
+                          </div>
+                          <span class="mono text-[11px] shrink-0"
+                                :class="c.logit_contribution > 0.05 ? 'text-blood-500'
+                                      : (c.logit_contribution < -0.05 ? 'text-jade-500' : 'text-ink-muted')"
+                                x-text="(c.logit_contribution > 0 ? '+' : '') + c.logit_contribution"></span>
+                        </div>
+                      </template>
+                    </div>
+                    <div class="mt-2 text-[10px] text-ink-muted" x-show="(report.ml_scorer?.notes || []).length">
+                      <template x-for="n in report.ml_scorer?.notes || []" :key="n">
+                        <div x-text="'· ' + n"></div>
+                      </template>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -820,11 +921,13 @@
                     <div class="display text-2xl font-bold" x-text="report.risk_grade?.grade || '—'"></div>
                   </div>
                   <div class="p-3 rounded-lg bg-paper-tint border hl">
-                    <div class="eyebrow mb-1">Fraud likelihood</div>
+                    <div class="eyebrow mb-1">Misrepresentation risk</div>
                     <div class="display text-2xl font-bold"
-                         x-text="report.fraud_classifier?.fraud_probability !== undefined
-                                 ? ((report.fraud_classifier.fraud_probability || 0) * 100).toFixed(0) + '%'
-                                 : '—'"></div>
+                         x-text="report.fraud_ensemble?.combined_probability !== undefined
+                                 ? ((report.fraud_ensemble.combined_probability || 0) * 100).toFixed(0) + '%'
+                                 : (report.fraud_classifier?.fraud_probability !== undefined
+                                    ? ((report.fraud_classifier.fraud_probability || 0) * 100).toFixed(0) + '%'
+                                    : '—')"></div>
                   </div>
                 </div>
                 <p class="mt-5 text-[12px] text-ink-muted">
@@ -869,7 +972,17 @@
               <div class="grid md:grid-cols-2 gap-4 mt-6" x-show="(report.financial_table || []).length > 1">
                 <div id="chart-rev-ar" class="card p-3 min-h-[300px]"></div>
                 <div id="chart-ni-cfo" class="card p-3 min-h-[300px]"></div>
-                <div id="chart-margin" class="card p-3 min-h-[300px] md:col-span-2" x-show="hasGrossMarginData()"></div>
+                <template x-if="hasGrossMarginData()">
+                  <div id="chart-margin" class="card p-3 min-h-[300px] md:col-span-2"></div>
+                </template>
+                <template x-if="!hasGrossMarginData() && (report.financial_table || []).length > 1">
+                  <div class="card p-5 md:col-span-2 text-[12.5px] text-ink-muted">
+                    <div class="eyebrow mb-1">Gross margin trend</div>
+                    Not charted — the issuer does not tag both <span class="mono">us-gaap:Revenues</span> and
+                    <span class="mono">us-gaap:GrossProfit</span> on a comparable annual basis (often the case for foreign-private
+                    issuers reporting on 20-F or for sub-segments of a holding company). The two panels above (revenue vs receivables, net income vs cash flow) are still anchored to the strongest available consolidated series.
+                  </div>
+                </template>
               </div>
             </section>
 
@@ -1100,13 +1213,95 @@
             <!-- EVIDENCE SUMMARY (per source document) -->
             <section id="evidence">
               <h2 class="display text-[42px] font-bold mb-1">Evidence summary</h2>
-              <div class="eyebrow mb-6">06 · By source document</div>
+              <div class="eyebrow mb-6">06 · Tied to source documents</div>
 
-              <template x-if="!(report.evidence_index || []).length && !(report.sources_analyzed || []).length">
+              <template x-if="!(report.evidence_index || []).length && !(report.sources_analyzed || []).length && !(report.evidence_summary || []).length">
                 <div class="card p-5 body-text text-ink-muted">
                   No source-level evidence ledger was produced for this run. Citations live inline under each red flag above.
                 </div>
               </template>
+
+              <!-- Per-finding ledger: one row per cited excerpt, anchored to a filing -->
+              <div x-data="{ showAll: false, filter: 'all' }" class="mb-6" x-show="(report.evidence_summary || []).length">
+                <div class="flex items-end justify-between gap-3 mb-3 flex-wrap">
+                  <div>
+                    <div class="eyebrow">Evidence ledger</div>
+                    <p class="text-sm text-ink-muted mt-1">
+                      One row per cited excerpt — every alleged red flag is anchored to the specific filing it came from. Sorted by evidence strength (facts first).
+                    </p>
+                  </div>
+                  <div class="flex items-center gap-1.5 mono text-[10px] uppercase tracking-wider">
+                    <button type="button" @click="filter='all'" class="px-2 py-1 rounded border"
+                            :class="filter==='all' ? 'bg-ink text-paper border-ink' : 'border-line text-ink-muted hover:text-ink'">All
+                      (<span x-text="(report.evidence_summary || []).length"></span>)</button>
+                    <button type="button" @click="filter='fact'" class="px-2 py-1 rounded border"
+                            :class="filter==='fact' ? 'bg-ink text-paper border-ink' : 'border-line text-ink-muted hover:text-ink'">Facts
+                      (<span x-text="(report.evidence_summary || []).filter(r=>r.label==='fact').length"></span>)</button>
+                    <button type="button" @click="filter='inference'" class="px-2 py-1 rounded border"
+                            :class="filter==='inference' ? 'bg-ink text-paper border-ink' : 'border-line text-ink-muted hover:text-ink'">Inferences
+                      (<span x-text="(report.evidence_summary || []).filter(r=>r.label==='inference').length"></span>)</button>
+                    <button type="button" @click="filter='question'" class="px-2 py-1 rounded border"
+                            :class="filter==='question' ? 'bg-ink text-paper border-ink' : 'border-line text-ink-muted hover:text-ink'">Questions
+                      (<span x-text="(report.evidence_summary || []).filter(r=>r.label==='question').length"></span>)</button>
+                  </div>
+                </div>
+
+                <div class="card overflow-hidden">
+                  <div class="hidden md:grid grid-cols-12 gap-3 px-4 py-2.5 bg-paper-tint border-b hl mono text-[10px] uppercase tracking-wider text-ink-muted">
+                    <div class="col-span-1">Label</div>
+                    <div class="col-span-4">Finding</div>
+                    <div class="col-span-2">Source filing</div>
+                    <div class="col-span-5">Cited excerpt</div>
+                  </div>
+                  <template x-for="(r, ri) in (report.evidence_summary || []).filter(x => filter==='all' || x.label===filter).slice(0, showAll ? 999 : 14)" :key="ri">
+                    <div class="grid grid-cols-1 md:grid-cols-12 gap-3 px-4 py-3.5 border-b hl last:border-b-0 text-[12.5px] leading-relaxed">
+                      <div class="md:col-span-1 flex md:block items-center gap-2">
+                        <span class="mono text-[9px] uppercase tracking-wider px-1.5 py-0.5 rounded font-medium border"
+                              :class="'verdict-' + (r.label === 'fact' ? 'likely_fraud'
+                                                  : r.label === 'inference' ? 'suspicious'
+                                                  : r.label === 'question' ? 'watch' : 'clean')"
+                              x-text="r.label || '—'"></span>
+                        <span class="mono text-[9px] uppercase text-ink-muted md:block hidden mt-1" x-text="r.confidence || ''"></span>
+                      </div>
+                      <div class="md:col-span-4">
+                        <div class="font-medium text-ink leading-snug" x-text="r.finding_title"></div>
+                        <div class="text-[11px] text-ink-muted mt-1 mono uppercase tracking-wider" x-show="r.category" x-text="(r.category || '').replace(/_/g,' ')"></div>
+                        <div class="text-[11.5px] text-ink-body mt-1.5" x-show="r.why_it_matters"
+                             x-text="r.why_it_matters"></div>
+                      </div>
+                      <div class="md:col-span-2 text-[11.5px]">
+                        <template x-if="r.url">
+                          <a :href="r.url" target="_blank" rel="noreferrer" class="text-azure-500 hover:underline mono break-all"
+                             x-text="(r.filing_type || 'filing') + ' · ' + (r.filing_date || '')"></a>
+                        </template>
+                        <template x-if="!r.url">
+                          <span class="text-ink-muted italic" x-text="r.missing_citation ? '— no source cited —' : (r.filing_type || 'unknown')"></span>
+                        </template>
+                      </div>
+                      <div class="md:col-span-5">
+                        <template x-if="r.excerpt">
+                          <blockquote class="cite-quote whitespace-pre-wrap text-[12.5px] leading-relaxed" x-text="r.excerpt"></blockquote>
+                        </template>
+                        <template x-if="!r.excerpt">
+                          <span class="text-ink-muted italic">No excerpt captured</span>
+                        </template>
+                      </div>
+                    </div>
+                  </template>
+                </div>
+                <div class="mt-3 flex items-center justify-between text-[11px] text-ink-muted">
+                  <span>
+                    Showing
+                    <span class="mono" x-text="Math.min(showAll ? 999 : 14, (report.evidence_summary || []).filter(x => filter==='all' || x.label===filter).length)"></span>
+                    of
+                    <span class="mono" x-text="(report.evidence_summary || []).filter(x => filter==='all' || x.label===filter).length"></span>
+                    rows
+                  </span>
+                  <button type="button" @click="showAll = !showAll" class="mono text-[11px] uppercase tracking-wider text-ink hover:underline"
+                          x-show="(report.evidence_summary || []).filter(x => filter==='all' || x.label===filter).length > 14"
+                          x-text="showAll ? 'Collapse' : 'Show all'"></button>
+                </div>
+              </div>
 
               <div class="space-y-3" x-show="(report.evidence_index || []).length">
                 <template x-for="(e, ei) in (report.evidence_index || [])" :key="e.doc_id || ei">
@@ -1555,6 +1750,14 @@ function muddyApp() {
       return m ? `${p} · ${m}` : p;
     },
 
+    hasFraudEnsemble() {
+      const e = this.report?.fraud_ensemble;
+      return e && typeof e.combined_probability === 'number';
+    },
+    ensembleAgreement() {
+      return (this.report?.fraud_ensemble?.agreement || 'n/a').replace('_', ' ');
+    },
+
     fraudModelLabel(fc) {
       if (!fc) return 'n/a';
       const m = fc.model;
@@ -1653,13 +1856,21 @@ function muddyApp() {
       const layoutBase = {
         paper_bgcolor: 'transparent',
         plot_bgcolor: 'transparent',
-        font: { family: 'Inter, ui-sans-serif', color: '#272525', size: 12 },
-        margin: { l: 50, r: 20, t: 40, b: 40 },
-        legend: { orientation: 'h', y: -0.18 },
-        xaxis: { gridcolor: '#e7e3da', tickfont: { family: 'JetBrains Mono', color: '#6e6a64', size: 11 } },
-        yaxis: { gridcolor: '#e7e3da', tickfont: { family: 'JetBrains Mono', color: '#6e6a64', size: 11 } },
+        font: { family: 'Inter, ui-sans-serif', color: '#1f2937', size: 12 },
+        margin: { l: 56, r: 20, t: 44, b: 44 },
+        legend: { orientation: 'h', y: -0.20, font: { family: 'JetBrains Mono', size: 11, color: '#0a1f44' } },
+        xaxis: {
+          gridcolor: '#e5e7eb', linecolor: '#cbd5e1', zeroline: false,
+          tickfont: { family: 'JetBrains Mono', color: '#6b7280', size: 10.5 },
+        },
+        yaxis: {
+          gridcolor: '#e5e7eb', linecolor: '#cbd5e1', zeroline: false,
+          tickfont: { family: 'JetBrains Mono', color: '#6b7280', size: 10.5 },
+        },
       };
       const config = { displayModeBar: false, responsive: true };
+
+      const titleFont = { color: '#0a1f44', size: 14, family: 'Source Serif 4' };
 
       const revEl = document.getElementById('chart-rev-ar');
       if (revEl) {
@@ -1667,18 +1878,20 @@ function muddyApp() {
         const revY = tbl.map(r => num(r.revenue));
         const arY = tbl.map(r => num(r.accounts_receivable));
         Plotly.newPlot('chart-rev-ar', [
-          { x: years, y: revY, type: 'bar', name: 'Revenue', marker: { color: '#1d4ed8' } },
-          { x: years, y: arY, type: 'bar', name: 'Accounts receivable', marker: { color: '#b45309' } },
-        ], { ...layoutBase, title: { text: 'Revenue vs Accounts Receivable', font: { color: '#0a0a0a', size: 14, family: 'Source Serif 4' } }, barmode: 'group' }, config);
+          { x: years, y: revY, type: 'bar', name: 'Revenue', marker: { color: '#0a1f44' } },
+          { x: years, y: arY, type: 'bar', name: 'Accounts receivable', marker: { color: '#b29869' } },
+        ], { ...layoutBase, title: { text: 'Revenue vs Accounts Receivable', font: titleFont }, barmode: 'group' }, config);
       }
 
       const niEl = document.getElementById('chart-ni-cfo');
       if (niEl) {
         Plotly.purge(niEl);
         Plotly.newPlot('chart-ni-cfo', [
-          { x: years, y: tbl.map(r => num(r.net_income)), type: 'scatter', mode: 'lines+markers', name: 'Net income', line: { color: '#b91c1c', width: 3 } },
-          { x: years, y: tbl.map(r => num(r.operating_cash_flow)), type: 'scatter', mode: 'lines+markers', name: 'Operating cash flow', line: { color: '#047857', width: 3 } },
-        ], { ...layoutBase, title: { text: 'Net Income vs Operating Cash Flow', font: { color: '#0a0a0a', size: 14, family: 'Source Serif 4' } } }, config);
+          { x: years, y: tbl.map(r => num(r.net_income)), type: 'scatter', mode: 'lines+markers',
+            name: 'Net income', line: { color: '#0a1f44', width: 2.5 }, marker: { size: 7, color: '#0a1f44' } },
+          { x: years, y: tbl.map(r => num(r.operating_cash_flow)), type: 'scatter', mode: 'lines+markers',
+            name: 'Operating cash flow', line: { color: '#b29869', width: 2.5, dash: 'dot' }, marker: { size: 7, color: '#b29869' } },
+        ], { ...layoutBase, title: { text: 'Net Income vs Operating Cash Flow', font: titleFont } }, config);
       }
 
       const gmEl = document.getElementById('chart-margin');
@@ -1692,8 +1905,10 @@ function muddyApp() {
         });
         if (gm.some(v => v !== null)) {
           Plotly.newPlot('chart-margin', [
-            { x: years, y: gm, type: 'scatter', mode: 'lines+markers', name: 'Gross margin %', line: { color: '#6d28d9', width: 3 } },
-          ], { ...layoutBase, title: { text: 'Gross margin trend (%)', font: { color: '#0a0a0a', size: 14, family: 'Source Serif 4' } } }, config);
+            { x: years, y: gm, type: 'scatter', mode: 'lines+markers', name: 'Gross margin %',
+              line: { color: '#0a1f44', width: 2.5 }, marker: { size: 7, color: '#0a1f44' },
+              fill: 'tozeroy', fillcolor: 'rgba(178, 152, 105, 0.10)' },
+          ], { ...layoutBase, title: { text: 'Gross margin trend (%)', font: titleFont } }, config);
         }
       }
     },

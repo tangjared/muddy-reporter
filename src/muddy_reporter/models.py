@@ -67,9 +67,12 @@ class Report(BaseModel):
     forensic_scores: dict = Field(default_factory=dict)
     risk_grade: dict = Field(default_factory=dict)
     fraud_classifier: dict = Field(default_factory=dict)
+    ml_scorer: dict = Field(default_factory=dict)
+    fraud_ensemble: dict = Field(default_factory=dict)
     provider_info: dict = Field(default_factory=dict)
     sources_analyzed: list[dict] = Field(default_factory=list)
     evidence_index: list[dict] = Field(default_factory=list)
+    evidence_summary: list[dict] = Field(default_factory=list)
 
 
 class PipelineResult(BaseModel):

@@ -3,318 +3,886 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>{{ report.ticker }} — Investigative Note (Prototype)</title>
+    <title>{{ report.ticker }} — Forensic Note · Muddy Reporter</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Source+Serif+4:opsz,wght@8..60,400;8..60,500;8..60,600;8..60,700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+
     <style>
       :root {
-        --bg: #0b0f14; --card: #111826; --text: #e6edf3; --muted: #9fb0c0;
-        --danger: #ff6b6b; --warn: #ffd166; --ok: #7bd389; --info: #7cc4ff;
-        --violet: #c79dff;
+        /* Goldman-inspired institutional palette */
+        --paper: #ffffff;
+        --paper-deep: #f4f5f7;
+        --paper-tint: #f8f9fb;
+        --ink: #0a1f44;
+        --ink-body: #1f2937;
+        --ink-muted: #6b7280;
+        --ink-dim: #9ca3af;
+        --line: #e5e7eb;
+        --line-strong: #cbd5e1;
+        --navy: #0a1f44;
+        --navy-deep: #061633;
+        --gold: #b29869;
+        --gold-deep: #9a8155;
+        --good: #065f46;
+        --good-bg: #f0fdf4;
+        --good-line: #bbf7d0;
+        --warn: #a16207;
+        --warn-bg: #fefce8;
+        --warn-line: #fde68a;
+        --bad: #9b1c1c;
+        --bad-bg: #fef2f2;
+        --bad-line: #fecaca;
+        --info: #1e40af;
+        --info-bg: #eff6ff;
+        --info-line: #bfdbfe;
       }
       * { box-sizing: border-box; }
-      body {
-        margin: 0; background: var(--bg); color: var(--text);
-        font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial;
-        line-height: 1.55;
+      html, body {
+        margin: 0; background: var(--paper); color: var(--ink-body);
+        font-family: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial;
+        line-height: 1.6;
+        -webkit-font-smoothing: antialiased;
       }
-      a { color: var(--info); text-decoration: none; }
-      a:hover { text-decoration: underline; }
+      a { color: var(--navy); text-decoration: none; border-bottom: 1px solid var(--line-strong); }
+      a:hover { color: var(--navy-deep); border-bottom-color: var(--gold); }
 
-      .container { max-width: 1100px; margin: 0 auto; padding: 28px 18px 60px; }
-
-      .hero {
-        background: linear-gradient(135deg, rgba(255,107,107,.20), rgba(124,196,255,.12));
-        border: 1px solid rgba(255,255,255,.08);
-        border-radius: 16px; padding: 22px 22px;
+      /* ============================ LAYOUT ============================ */
+      .page-frame {
+        max-width: 1080px;
+        margin: 0 auto;
+        padding: 0 32px 80px;
       }
-      h1 { margin: 0 0 6px; font-size: 28px; letter-spacing: -0.01em; }
-      .sub { color: var(--muted); font-size: 13px; }
-      .kpi { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
 
-      .grid { display: grid; grid-template-columns: 1fr; gap: 14px; margin-top: 14px; }
-      @media (min-width: 900px) { .grid { grid-template-columns: 1.1fr .9fr; } }
-
-      .card {
-        background: var(--card); border: 1px solid rgba(255,255,255,.08);
-        border-radius: 14px; padding: 18px;
+      .masthead {
+        border-bottom: 1px solid var(--line);
+        padding: 20px 0 14px;
+        position: sticky; top: 0; background: rgba(255,255,255,0.96);
+        backdrop-filter: blur(6px);
+        z-index: 10;
       }
-      h2 { margin: 0 0 10px; font-size: 18px; letter-spacing: -0.005em; }
-      h3 { margin: 14px 0 8px; font-size: 14px; color: #d7e2ee; text-transform: uppercase; letter-spacing: .04em; }
-
-      .pill {
-        display: inline-block; padding: 2px 9px; border-radius: 999px;
-        font-size: 12px; font-weight: 500;
-        border: 1px solid rgba(255,255,255,.15); color: var(--muted);
-        margin-right: 4px; vertical-align: middle;
+      .masthead-inner {
+        max-width: 1080px;
+        margin: 0 auto;
+        padding: 0 32px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 24px;
       }
-      .pill.fact { color: var(--ok); border-color: rgba(123,211,137,.45); background: rgba(123,211,137,.08); }
-      .pill.inference { color: var(--info); border-color: rgba(124,196,255,.45); background: rgba(124,196,255,.08); }
-      .pill.question { color: var(--warn); border-color: rgba(255,209,102,.45); background: rgba(255,209,102,.08); }
-      .pill.speculation { color: var(--danger); border-color: rgba(255,107,107,.45); background: rgba(255,107,107,.08); }
-      .pill.high { color: var(--danger); border-color: rgba(255,107,107,.45); background: rgba(255,107,107,.08); }
-      .pill.medium { color: var(--warn); border-color: rgba(255,209,102,.45); background: rgba(255,209,102,.08); }
-      .pill.low { color: var(--info); border-color: rgba(124,196,255,.45); background: rgba(124,196,255,.08); }
-
-      .muted { color: var(--muted); }
-      ul { margin: 6px 0 0 18px; }
-      .hr { height: 1px; background: rgba(255,255,255,.08); margin: 14px 0; }
-
-      .finding { padding: 12px 0; border-bottom: 1px dashed rgba(255,255,255,.08); }
-      .finding:last-child { border-bottom: none; }
-      .cite { margin-top: 10px; padding: 10px; border-radius: 10px;
-              background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.06); }
-      .quote {
-        white-space: pre-wrap; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-        font-size: 12.5px; color: #d7e2ee; border-left: 3px solid rgba(124,196,255,.5);
-        padding: 6px 10px; margin-top: 6px;
+      .brand {
+        display: flex; align-items: center; gap: 12px;
       }
-      .footer { margin-top: 18px; color: var(--muted); font-size: 12px; }
-
-      table { width: 100%; border-collapse: collapse; font-size: 12.5px; margin-top: 8px; }
-      th, td { padding: 6px 8px; text-align: right; border-bottom: 1px solid rgba(255,255,255,.06); }
-      th:first-child, td:first-child { text-align: left; }
-      th { color: var(--muted); font-weight: 500; }
-
-      .anomaly { padding: 10px 12px; border-radius: 10px; margin-bottom: 10px;
-                 border: 1px solid rgba(255,255,255,.08); background: rgba(255,255,255,.02); }
-      .anomaly h4 { margin: 0 0 4px; font-size: 14px; }
-
+      .brand-mark {
+        width: 32px; height: 32px;
+        background: var(--navy); color: #fff;
+        display: inline-flex; align-items: center; justify-content: center;
+        font-family: 'Source Serif 4', serif; font-weight: 700; font-size: 14px;
+        position: relative;
+      }
+      .brand-mark::after {
+        content: ''; position: absolute; top: 0; right: 0; width: 6px; height: 6px; background: var(--gold);
+      }
+      .brand-name {
+        display: flex; flex-direction: column; line-height: 1.05;
+      }
+      .brand-name .title {
+        font-family: 'Source Serif 4', serif; font-weight: 600; font-size: 16px; color: var(--navy); letter-spacing: -0.01em;
+      }
+      .brand-name .sub {
+        font-family: 'JetBrains Mono', monospace; font-size: 9px; letter-spacing: 0.22em; text-transform: uppercase;
+        color: var(--ink-muted); margin-top: 2px;
+      }
+      .masthead-meta {
+        display: flex; align-items: center; gap: 20px;
+        font-family: 'JetBrains Mono', monospace; font-size: 10.5px; letter-spacing: 0.14em;
+        text-transform: uppercase; color: var(--ink-muted);
+      }
       .toolbar {
-        position: sticky; top: 8px; display: flex; justify-content: flex-end;
-        gap: 8px; z-index: 10; margin-bottom: 8px;
+        display: flex; gap: 8px; margin-left: auto;
       }
       .btn {
-        background: rgba(255,255,255,.08); color: var(--text); border: 1px solid rgba(255,255,255,.15);
-        padding: 6px 12px; border-radius: 8px; font-size: 13px; cursor: pointer;
+        background: var(--navy); color: #fff;
+        border: 0;
+        padding: 7px 14px; font-family: 'JetBrains Mono', monospace; font-size: 10.5px; letter-spacing: 0.14em;
+        text-transform: uppercase; cursor: pointer; font-weight: 500;
       }
-      .btn:hover { background: rgba(255,255,255,.14); }
+      .btn:hover { background: var(--navy-deep); }
+      .btn-ghost { background: transparent; color: var(--navy); border: 1px solid var(--line-strong); }
+      .btn-ghost:hover { background: var(--paper-deep); }
 
+      .gold-stripe {
+        height: 1px;
+        background: linear-gradient(90deg, transparent, var(--gold) 30%, var(--gold) 70%, transparent);
+      }
+
+      /* ============================ TYPOGRAPHY ============================ */
+      .display { font-family: 'Source Serif 4', serif; color: var(--navy); letter-spacing: -0.02em; }
+      .mono { font-family: 'JetBrains Mono', monospace; }
+      .eyebrow {
+        font-family: Inter, sans-serif; font-weight: 600; font-size: 10.5px;
+        letter-spacing: 0.18em; text-transform: uppercase; color: var(--ink-muted);
+      }
+      .body-text { font-size: 14px; line-height: 1.65; color: var(--ink-body); }
+      .muted { color: var(--ink-muted); }
+      .small { font-size: 12px; }
+
+      h1.headline {
+        font-family: 'Source Serif 4', serif; color: var(--navy);
+        font-size: 44px; line-height: 1.05; letter-spacing: -0.022em; font-weight: 700;
+        margin: 0 0 6px;
+      }
+      h2.section {
+        font-family: 'Source Serif 4', serif; color: var(--navy);
+        font-size: 26px; letter-spacing: -0.018em; font-weight: 700;
+        margin: 0 0 4px;
+      }
+      h3.subsection {
+        font-family: 'Source Serif 4', serif; color: var(--navy);
+        font-size: 17px; font-weight: 600;
+        margin: 14px 0 8px;
+      }
+
+      /* ============================ HERO ============================ */
+      .report-hero {
+        padding: 36px 0 28px;
+        border-bottom: 1px solid var(--line);
+      }
+      .hero-tag {
+        display: inline-flex; align-items: center; gap: 8px;
+        border: 1px solid var(--line);
+        padding: 4px 10px;
+        background: var(--paper-deep);
+      }
+      .hero-tag .dot {
+        width: 6px; height: 6px; background: var(--gold);
+      }
+      .hero-tag .label {
+        font-family: 'JetBrains Mono', monospace; font-size: 10px; letter-spacing: 0.18em;
+        text-transform: uppercase; color: var(--ink-muted);
+      }
+      .hero-meta {
+        display: flex; flex-wrap: wrap; gap: 24px; margin-top: 16px;
+        font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--ink-muted);
+        letter-spacing: 0.04em;
+      }
+      .hero-meta .k { color: var(--ink-dim); margin-right: 6px; text-transform: uppercase; letter-spacing: 0.14em; font-size: 10px; }
+      .hero-meta .v { color: var(--ink-body); }
+
+      .hero-kpis {
+        display: grid; grid-template-columns: repeat(4, 1fr);
+        margin-top: 24px;
+        border-top: 1px solid var(--line);
+        border-bottom: 1px solid var(--line);
+      }
+      .kpi {
+        padding: 18px 16px; border-right: 1px solid var(--line);
+        position: relative;
+      }
+      .kpi:last-child { border-right: 0; }
+      .kpi .eyebrow { font-size: 9.5px; }
+      .kpi .num {
+        font-family: 'Source Serif 4', serif; color: var(--navy);
+        font-size: 32px; font-weight: 700; line-height: 1; letter-spacing: -0.02em;
+        margin-top: 6px;
+      }
+      .kpi .num.alert { color: var(--bad); }
+      .kpi .num.warn { color: var(--warn); }
+
+      /* ============================ CARDS / SECTIONS ============================ */
+      .section-block { padding: 36px 0; border-bottom: 1px solid var(--line); }
+      .section-block:last-child { border-bottom: 0; }
+      .section-block .head { margin-bottom: 18px; }
+      .section-block .head .eyebrow { margin-bottom: 4px; }
+
+      .card {
+        background: var(--paper);
+        border: 1px solid var(--line);
+        padding: 20px;
+      }
+      .card-tinted {
+        background: var(--paper-deep);
+        border: 1px solid var(--line);
+        padding: 20px;
+      }
+      .grid2 { display: grid; grid-template-columns: 1fr; gap: 18px; }
+      @media (min-width: 860px) { .grid2 { grid-template-columns: 1fr 1fr; } }
+      .grid3 { display: grid; grid-template-columns: 1fr; gap: 14px; }
+      @media (min-width: 760px) { .grid3 { grid-template-columns: repeat(3, 1fr); } }
+
+      /* ============================ PILLS ============================ */
+      .pill {
+        display: inline-block; padding: 2px 8px;
+        font-family: 'JetBrains Mono', monospace; font-size: 10px; letter-spacing: 0.06em;
+        font-weight: 500;
+        border: 1px solid var(--line-strong); color: var(--ink-muted);
+        background: var(--paper-deep);
+        margin-right: 4px; vertical-align: middle; text-transform: uppercase;
+      }
+      .pill.fact, .pill.high { color: var(--bad); border-color: var(--bad-line); background: var(--bad-bg); }
+      .pill.inference, .pill.medium { color: var(--info); border-color: var(--info-line); background: var(--info-bg); }
+      .pill.question, .pill.low { color: var(--warn); border-color: var(--warn-line); background: var(--warn-bg); }
+      .pill.speculation { color: var(--bad); border-color: var(--bad-line); background: var(--bad-bg); }
+      .pill.clean { color: var(--good); border-color: var(--good-line); background: var(--good-bg); }
+      .pill.watch { color: var(--warn); border-color: var(--warn-line); background: var(--warn-bg); }
+      .pill.suspicious { color: var(--bad); border-color: var(--bad-line); background: var(--bad-bg); }
+      .pill.likely_fraud, .pill.likely_misrepresentation { color: var(--bad); border-color: var(--bad-line); background: var(--bad-bg); }
+
+      /* ============================ FINDINGS / EVIDENCE ============================ */
+      .finding {
+        padding: 22px 0; border-bottom: 1px solid var(--line);
+        display: grid; grid-template-columns: 48px 1fr; gap: 16px;
+      }
+      .finding:last-child { border-bottom: 0; }
+      .finding .num {
+        font-family: 'Source Serif 4', serif; font-weight: 700; font-size: 36px;
+        color: var(--line-strong); line-height: 1; letter-spacing: -0.04em;
+      }
+      .finding h4 {
+        margin: 0 0 6px; font-family: 'Source Serif 4', serif; font-weight: 600;
+        color: var(--navy); font-size: 18px; letter-spacing: -0.012em; line-height: 1.25;
+      }
+      .finding .why {
+        border-left: 3px solid var(--gold);
+        background: #faf8f3;
+        padding: 8px 14px;
+        margin: 10px 0;
+      }
+      .finding .why .lab {
+        font-family: 'JetBrains Mono', monospace; font-size: 9.5px; letter-spacing: 0.18em;
+        color: var(--gold-deep); text-transform: uppercase; font-weight: 600;
+      }
+
+      .quote {
+        white-space: pre-wrap; font-family: 'JetBrains Mono', monospace;
+        font-size: 12.5px; color: var(--ink-body); line-height: 1.6;
+        background: var(--paper-deep);
+        border-left: 3px solid var(--navy);
+        padding: 10px 14px; margin: 6px 0;
+      }
+      .cite-row {
+        display: grid; grid-template-columns: 1fr; gap: 4px; margin-top: 10px;
+        padding-top: 10px; border-top: 1px dashed var(--line);
+      }
+      .cite-row a { font-family: 'JetBrains Mono', monospace; font-size: 11px; word-break: break-all; }
+
+      /* ============================ TABLES ============================ */
+      table {
+        width: 100%; border-collapse: collapse; font-size: 12.5px;
+        margin-top: 8px;
+      }
+      table.tabular {
+        font-family: 'JetBrains Mono', monospace;
+      }
+      table.tabular th, table.tabular td {
+        padding: 8px 10px; text-align: right; border-bottom: 1px solid var(--line);
+      }
+      table.tabular th:first-child, table.tabular td:first-child { text-align: left; }
+      table.tabular thead th {
+        color: var(--ink-muted); font-weight: 600; font-size: 10px;
+        letter-spacing: 0.16em; text-transform: uppercase;
+        border-bottom: 1.5px solid var(--navy);
+        background: var(--paper-tint);
+      }
+      table.tabular tbody tr:hover { background: var(--paper-tint); }
+
+      /* Evidence ledger */
+      .ev-ledger { width: 100%; border-collapse: collapse; font-size: 12px; }
+      .ev-ledger th {
+        background: var(--paper-tint); color: var(--ink-muted);
+        font-family: 'JetBrains Mono', monospace; font-weight: 600; font-size: 9.5px;
+        letter-spacing: 0.18em; text-transform: uppercase;
+        text-align: left; padding: 9px 12px;
+        border-bottom: 1.5px solid var(--navy);
+      }
+      .ev-ledger td {
+        padding: 12px; vertical-align: top;
+        border-bottom: 1px solid var(--line);
+      }
+      .ev-ledger tbody tr:hover { background: var(--paper-tint); }
+      .ev-ledger .tt { font-family: 'JetBrains Mono', monospace; font-size: 11px; }
+
+      /* Anomaly card */
+      .anomaly {
+        border: 1px solid var(--line); padding: 14px 16px; margin-bottom: 10px;
+        position: relative; background: #fff;
+      }
+      .anomaly::before {
+        content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 3px; background: var(--gold);
+      }
+      .anomaly h4 {
+        margin: 0 0 6px; font-family: 'Source Serif 4', serif; color: var(--navy);
+        font-size: 15.5px; font-weight: 600;
+      }
+
+      /* Score / verdict tile */
+      .score-tile {
+        background: #fff; border: 1px solid var(--line); padding: 18px;
+        position: relative;
+      }
+      .score-tile::before {
+        content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 3px; background: var(--navy);
+      }
+      .score-num {
+        font-family: 'Source Serif 4', serif; font-weight: 700; font-size: 38px;
+        line-height: 1; letter-spacing: -0.03em; color: var(--navy);
+        margin: 6px 0;
+      }
+      .score-num.bad { color: var(--bad); }
+      .score-num.warn { color: var(--warn); }
+      .score-num.good { color: var(--good); }
+
+      /* Risk-grade hero card */
+      .grade-card {
+        background: #fff; border: 1px solid var(--line); padding: 20px 24px;
+        position: relative; min-width: 220px;
+      }
+      .grade-card::before {
+        content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 3px; background: var(--gold);
+      }
+      .grade-letter {
+        font-family: 'Source Serif 4', serif; font-weight: 700; font-size: 76px;
+        line-height: 0.9; letter-spacing: -0.04em; color: var(--navy);
+      }
+      .grade-A { color: var(--good); }
+      .grade-B { color: #4d7c0f; }
+      .grade-C { color: var(--warn); }
+      .grade-D { color: #b45309; }
+      .grade-F { color: var(--bad); }
+
+      /* Two-col claims layout */
+      .claim-row {
+        display: grid; grid-template-columns: 1fr 1fr;
+        border: 1px solid var(--line); margin-bottom: 14px; background: #fff;
+      }
+      .claim-row > div { padding: 14px 16px; }
+      .claim-row > div:first-child { border-right: 1px solid var(--line); background: var(--paper-deep); }
+      .claim-row .role {
+        font-family: 'JetBrains Mono', monospace; font-size: 9.5px; letter-spacing: 0.20em;
+        text-transform: uppercase; color: var(--ink-muted); margin-bottom: 6px;
+      }
+
+      /* Footer */
+      .doc-footer {
+        margin-top: 36px; padding-top: 24px; border-top: 1px solid var(--line);
+        font-size: 12px; color: var(--ink-muted); line-height: 1.7;
+      }
+      .doc-footer .legal {
+        background: var(--paper-deep); border: 1px solid var(--line);
+        padding: 14px 18px; margin-bottom: 18px; font-size: 11.5px;
+      }
+
+      /* Print: keep institutional look but force pure white */
       @media print {
-        body { background: white; color: black; }
-        .toolbar { display: none; }
-        .card, .hero { background: white; border-color: #ddd; box-shadow: none; }
-        a { color: #0066cc; }
-        .pill { border-color: #ccc; color: #555; background: #f6f6f6 !important; }
-        .quote { color: #333; border-color: #888; }
+        .masthead, .toolbar { display: none !important; }
+        body { background: #fff; }
+        .section-block { page-break-inside: avoid; }
+        .finding { page-break-inside: avoid; }
+        a { color: var(--navy); border: 0; }
       }
     </style>
   </head>
   <body>
-    <div class="container">
-      <div class="toolbar">
-        <button class="btn" onclick="window.print()">🖨️ Print / Save as PDF</button>
-      </div>
 
-      <div class="hero">
-        <h1>{{ report.ticker }} — Investigative Note (Prototype)</h1>
-        <div class="sub">
-          {% if report.company_name %}{{ report.company_name }} · {% endif %}
-          Generated {{ report.generated_at_iso }} ·
-          Source: SEC EDGAR filings + XBRL · LLM:
-          {{ report.provider_info.provider if report.provider_info else "n/a" }}
-          ({{ report.provider_info.model if report.provider_info else "n/a" }})
-          · <strong>Not investment advice — requires human verification.</strong>
+    <!-- ============================================================
+         MASTHEAD
+         ============================================================ -->
+    <header class="masthead">
+      <div class="masthead-inner">
+        <div class="brand">
+          <span class="brand-mark">MR</span>
+          <span class="brand-name">
+            <span class="title">Muddy Reporter</span>
+            <span class="sub">Forensic Equity Research</span>
+          </span>
         </div>
-        <div class="kpi">
-          <span class="pill">Filings: {{ sources | length }}</span>
-          <span class="pill">Red flags: {{ report.red_flags | length }}</span>
-          <span class="pill">Open questions: {{ report.open_questions | length }}</span>
-          {% if report.financial_anomalies %}
-            <span class="pill medium">Quant anomalies: {{ report.financial_anomalies | length }}</span>
-          {% endif %}
+        <div class="masthead-meta">
+          <span>{{ report.ticker }}</span>
+          <span style="color:var(--gold);">·</span>
+          <span>Investigative note</span>
+        </div>
+        <div class="toolbar">
+          <button class="btn-ghost btn" onclick="window.print()">Print / PDF</button>
         </div>
       </div>
+      <div class="gold-stripe" style="margin-top:14px;"></div>
+    </header>
 
-      <div class="grid">
-        <div class="card">
-          <h2>Company snapshot</h2>
-          <div><strong>Business</strong>: <span class="muted">{{ report.snapshot.business_description }}</span></div>
-          <div><strong>Where it operates</strong>: <span class="muted">{{ report.snapshot.where_it_operates }}</span></div>
-          <div><strong>Revenue model / segments</strong>: <span class="muted">{{ report.snapshot.segments_or_revenue_model }}</span></div>
-          <div><strong>Recent corporate actions</strong>: <span class="muted">{{ report.snapshot.recent_corporate_actions }}</span></div>
+    <main class="page-frame">
 
-          <div class="hr"></div>
-          <h2>Why this company merits scrutiny</h2>
-          <div class="muted">{{ report.core_thesis }}</div>
+      <!-- ============================================================
+           HERO
+           ============================================================ -->
+      <section class="report-hero">
+        <div class="hero-tag">
+          <span class="dot"></span>
+          <span class="label">Concern thesis · Public sources only · Not investment advice</span>
+        </div>
 
-          {% if report.financial_anomalies %}
-            <div class="hr"></div>
-            <h2>Quantitative anomalies (from XBRL)</h2>
-            {% for a in report.financial_anomalies %}
-              <div class="anomaly">
-                <h4>{{ a.title }}</h4>
-                <span class="pill {{ a.severity }}">{{ a.severity }}</span>
-                <span class="pill">{{ a.category }}</span>
-                <span class="pill">{{ a.metric }}</span>
-                <div class="muted" style="margin-top:6px">{{ a.description }}</div>
-              </div>
-            {% endfor %}
+        <h1 class="headline" style="margin-top:18px;">
+          {{ report.company_name or report.ticker }}
+        </h1>
+        <div class="eyebrow" style="color:var(--gold-deep); margin-top:6px;">
+          {{ report.ticker }} · Forensic note
+        </div>
+
+        <div class="hero-meta">
+          <span><span class="k">Issued</span><span class="v">{{ report.generated_at_iso }}</span></span>
+          <span><span class="k">Sources</span><span class="v">SEC EDGAR + XBRL</span></span>
+          <span><span class="k">Engine</span><span class="v">{{ report.provider_info.provider if report.provider_info else 'n/a' }} · {{ report.provider_info.model if report.provider_info else 'n/a' }}</span></span>
+          {% if report.risk_grade and report.risk_grade.grade %}
+          <span><span class="k">Composite risk</span><span class="v">Grade {{ report.risk_grade.grade }} ({{ report.risk_grade.score }}/100)</span></span>
+          {% endif %}
+        </div>
+
+        <!-- KPIs -->
+        <div class="hero-kpis">
+          <div class="kpi">
+            <div class="eyebrow">Filings analyzed</div>
+            <div class="num">{{ sources | length }}</div>
+          </div>
+          <div class="kpi">
+            <div class="eyebrow">Red flags</div>
+            <div class="num {% if (report.red_flags|length) >= 5 %}alert{% elif (report.red_flags|length) >= 1 %}warn{% endif %}">{{ report.red_flags | length }}</div>
+          </div>
+          <div class="kpi">
+            <div class="eyebrow">Quant anomalies</div>
+            <div class="num {% if (report.financial_anomalies|length) >= 3 %}alert{% elif (report.financial_anomalies|length) >= 1 %}warn{% endif %}">{{ report.financial_anomalies | length }}</div>
+          </div>
+          <div class="kpi">
+            <div class="eyebrow">Open questions</div>
+            <div class="num">{{ report.open_questions | length }}</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============================================================
+           1 · COMPANY SNAPSHOT
+           ============================================================ -->
+      <section class="section-block">
+        <div class="head">
+          <div class="eyebrow">01 · Company snapshot</div>
+          <h2 class="section">What the company says it does</h2>
+        </div>
+        <div class="grid2">
+          <div class="card">
+            <div class="eyebrow" style="margin-bottom:6px;">Business</div>
+            <div class="body-text">{{ report.snapshot.business_description or '—' }}</div>
+            <div class="eyebrow" style="margin:14px 0 6px;">Where it operates</div>
+            <div class="body-text">{{ report.snapshot.where_it_operates or '—' }}</div>
+          </div>
+          <div class="card">
+            <div class="eyebrow" style="margin-bottom:6px;">Revenue model / segments</div>
+            <div class="body-text">{{ report.snapshot.segments_or_revenue_model or '—' }}</div>
+            <div class="eyebrow" style="margin:14px 0 6px;">Recent corporate actions</div>
+            <div class="body-text">{{ report.snapshot.recent_corporate_actions or '—' }}</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============================================================
+           2 · CORE THESIS
+           ============================================================ -->
+      <section class="section-block">
+        <div class="head">
+          <div class="eyebrow">02 · Core concern thesis</div>
+          <h2 class="section">Why this company merits scrutiny</h2>
+        </div>
+        <div class="card-tinted body-text" style="font-family: 'Source Serif 4', serif; font-size: 16px; line-height: 1.7;">
+          {{ report.core_thesis or '—' }}
+        </div>
+      </section>
+
+      <!-- ============================================================
+           3 · QUANT ANOMALIES
+           ============================================================ -->
+      {% if report.financial_anomalies %}
+      <section class="section-block">
+        <div class="head">
+          <div class="eyebrow">03 · Quantitative anomalies — deterministic from XBRL</div>
+          <h2 class="section">Pattern-based red flags from filed financials</h2>
+        </div>
+        {% for a in report.financial_anomalies %}
+          <div class="anomaly">
+            <h4>{{ a.title }}</h4>
+            <div style="margin-bottom:6px;">
+              <span class="pill {{ a.severity }}">{{ a.severity }}</span>
+              <span class="pill">{{ a.category }}</span>
+              <span class="pill">{{ a.metric }}</span>
+            </div>
+            <div class="body-text small">{{ a.description }}</div>
+          </div>
+        {% endfor %}
+      </section>
+      {% endif %}
+
+      <!-- ============================================================
+           4 · FORENSIC + ML SCORES
+           ============================================================ -->
+      {% if report.forensic_scores or report.fraud_ensemble or report.fraud_classifier %}
+      <section class="section-block">
+        <div class="head">
+          <div class="eyebrow">04 · Academic forensic models · ML ensemble</div>
+          <h2 class="section">Quantitative misrepresentation signals</h2>
+        </div>
+        <div class="grid3">
+          {% if report.forensic_scores and report.forensic_scores.beneish_m is not none %}
+          <div class="score-tile">
+            <div class="eyebrow">Beneish M-Score</div>
+            <div class="score-num {% if report.forensic_scores.beneish_signal == 'manipulator' %}bad{% else %}good{% endif %}">{{ report.forensic_scores.beneish_m }}</div>
+            <div class="small muted">Threshold M &gt; -1.78 = likely manipulator</div>
+          </div>
+          {% endif %}
+          {% if report.forensic_scores and report.forensic_scores.piotroski_f is not none %}
+          <div class="score-tile">
+            <div class="eyebrow">Piotroski F-Score</div>
+            <div class="score-num {% if report.forensic_scores.piotroski_f >= 7 %}good{% elif report.forensic_scores.piotroski_f <= 3 %}bad{% else %}warn{% endif %}">{{ report.forensic_scores.piotroski_f }}/9</div>
+            <div class="small muted">9 binary tests of fundamental strength</div>
+          </div>
+          {% endif %}
+          {% if report.forensic_scores and report.forensic_scores.altman_z is not none %}
+          <div class="score-tile">
+            <div class="eyebrow">Altman Z'-Score</div>
+            <div class="score-num {% if report.forensic_scores.altman_zone == 'distress' %}bad{% elif report.forensic_scores.altman_zone == 'safe' %}good{% else %}warn{% endif %}">{{ report.forensic_scores.altman_z }}</div>
+            <div class="small muted">{{ report.forensic_scores.altman_zone or 'gray' }} zone</div>
+          </div>
+          {% endif %}
+        </div>
+
+        {% if report.fraud_ensemble %}
+        <div class="grid2" style="margin-top:18px;">
+          {% if report.risk_grade and report.risk_grade.grade %}
+          <div class="grade-card">
+            <div class="eyebrow">Composite risk grade</div>
+            <div style="display:flex; align-items:baseline; gap:14px; margin-top:6px;">
+              <span class="grade-letter grade-{{ report.risk_grade.grade }}">{{ report.risk_grade.grade }}</span>
+              <span class="mono small muted">{{ report.risk_grade.score }}/100</span>
+            </div>
+            <div class="small muted" style="margin-top:8px;">Aggregated from forensic scores · anomaly count · LLM finding mix.</div>
+          </div>
           {% endif %}
 
-          <div class="hr"></div>
-          <h2>Top red flags (skeptical lens)</h2>
-          {% for f in report.red_flags %}
-            <div class="finding">
-              <div>
-                <strong>{{ loop.index }}. {{ f.title }}</strong>
+          <div class="card" style="position:relative;">
+            <div class="eyebrow">Misrepresentation risk · two-model ensemble</div>
+            <div style="display:flex; align-items:baseline; gap:14px; margin-top:6px;">
+              <span class="score-num {% if (report.fraud_ensemble.combined_probability or 0) >= 0.7 %}bad{% elif (report.fraud_ensemble.combined_probability or 0) >= 0.45 %}warn{% else %}good{% endif %}">
+                {{ "%.0f"|format((report.fraud_ensemble.combined_probability or 0) * 100) }}%
+              </span>
+              <span class="pill {{ report.fraud_ensemble.verdict|replace('likely_misrepresentation','likely_fraud') }}">{{ report.fraud_ensemble.verdict|replace('_',' ') }}</span>
+              {% if report.fraud_ensemble.agreement %}
+              <span class="pill" style="background:{% if report.fraud_ensemble.agreement == 'agree' %}var(--good-bg);color:var(--good);border-color:var(--good-line){% elif report.fraud_ensemble.agreement == 'disagree' %}var(--warn-bg);color:var(--warn);border-color:var(--warn-line){% else %}var(--paper-deep);color:var(--ink-muted){% endif %};">models {{ report.fraud_ensemble.agreement }}</span>
+              {% endif %}
+            </div>
+            <table class="tabular" style="margin-top:14px;">
+              <thead><tr><th>Estimator</th><th>Probability</th><th>Verdict</th><th>Confidence</th></tr></thead>
+              <tbody>
+                <tr>
+                  <td>LLM few-shot ({{ report.provider_info.model if report.provider_info else 'n/a' }})</td>
+                  <td>{{ "%.0f"|format(((report.fraud_ensemble.votes.llm_few_shot.probability) or 0) * 100) }}%</td>
+                  <td>{{ (report.fraud_ensemble.votes.llm_few_shot.verdict or '—')|replace('_',' ') }}</td>
+                  <td>{{ report.fraud_ensemble.votes.llm_few_shot.confidence or '—' }}</td>
+                </tr>
+                <tr>
+                  <td>Logistic regression (9 features)</td>
+                  <td>{{ "%.0f"|format(((report.fraud_ensemble.votes.ml_logreg.probability) or 0) * 100) }}%</td>
+                  <td>{{ (report.fraud_ensemble.votes.ml_logreg.verdict or '—')|replace('_',' ') }}</td>
+                  <td>{{ report.fraud_ensemble.votes.ml_logreg.confidence or '—' }} · cov {{ "%.0f"|format((report.fraud_ensemble.votes.ml_logreg.coverage or 0) * 100) }}%</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+        {% endif %}
+      </section>
+      {% endif %}
+
+      <!-- ============================================================
+           5 · RED FLAGS
+           ============================================================ -->
+      <section class="section-block">
+        <div class="head">
+          <div class="eyebrow">05 · Top red flags</div>
+          <h2 class="section">Skeptical findings extracted from filings</h2>
+        </div>
+        {% for f in report.red_flags %}
+          <div class="finding">
+            <div class="num">{{ "%02d"|format(loop.index) }}</div>
+            <div>
+              <h4>{{ f.title }}</h4>
+              <div style="margin-bottom:8px;">
                 <span class="pill {{ f.label }}">{{ f.label }}</span>
-                <span class="pill {{ f.confidence }}">confidence: {{ f.confidence }}</span>
-                <span class="pill">{{ f.category }}</span>
+                <span class="pill {{ f.confidence }}">conf {{ f.confidence }}</span>
+                <span class="pill">{{ f.category|replace('_',' ') }}</span>
               </div>
-              <div class="muted" style="margin-top: 6px;"><strong>Observation</strong>: {{ f.claim_or_observation }}</div>
-              <div class="muted" style="margin-top: 6px;"><strong>Why it matters</strong>: {{ f.why_it_matters }}</div>
+              <div class="body-text"><strong>Observation.</strong> {{ f.claim_or_observation }}</div>
+              <div class="why">
+                <div class="lab">Why it matters</div>
+                <div class="body-text" style="margin-top:4px;">{{ f.why_it_matters }}</div>
+              </div>
 
               {% if f.counterpoints_or_alt_explanations and f.counterpoints_or_alt_explanations|length > 0 %}
-                <div style="margin-top: 8px;">
-                  <strong>Counterpoints / alternative explanations</strong>
-                  <ul>
-                    {% for c in f.counterpoints_or_alt_explanations %}
-                      <li class="muted">{{ c }}</li>
-                    {% endfor %}
-                  </ul>
-                </div>
+              <h3 class="subsection">Counterpoints / alternative explanations</h3>
+              <ul class="body-text">
+                {% for c in f.counterpoints_or_alt_explanations %}
+                  <li>{{ c }}</li>
+                {% endfor %}
+              </ul>
               {% endif %}
 
               {% if f.open_questions and f.open_questions|length > 0 %}
-                <div style="margin-top: 8px;">
-                  <strong>Open questions</strong>
-                  <ul>
-                    {% for q in f.open_questions %}
-                      <li class="muted">{{ q }}</li>
-                    {% endfor %}
-                  </ul>
-                </div>
+              <h3 class="subsection">Open questions</h3>
+              <ul class="body-text">
+                {% for q in f.open_questions %}
+                  <li>{{ q }}</li>
+                {% endfor %}
+              </ul>
               {% endif %}
 
               {% if f.citations and f.citations|length > 0 %}
-                <div class="cite">
-                  <strong>Citations</strong>
-                  {% for ci in f.citations %}
-                    <div style="margin-top: 8px;">
-                      <div class="muted">
-                        <a href="{{ ci.url }}" target="_blank" rel="noreferrer">{{ ci.doc_id }}</a>
-                      </div>
-                      <div class="quote">{{ ci.excerpt }}</div>
-                    </div>
-                  {% endfor %}
+              <h3 class="subsection">Cited evidence</h3>
+              {% for ci in f.citations %}
+                <div class="cite-row">
+                  <a href="{{ ci.url }}" target="_blank" rel="noreferrer">{{ ci.doc_id }}</a>
+                  <div class="quote">{{ ci.excerpt }}</div>
                 </div>
+              {% endfor %}
               {% else %}
-                <div class="cite">
-                  <strong>Citations</strong>
-                  <div class="muted">No direct citations attached — treat as low-confidence pending verification.</div>
-                </div>
+              <div class="cite-row">
+                <span class="small muted">No direct citation captured — treat as low-confidence pending verification.</span>
+              </div>
               {% endif %}
             </div>
-          {% endfor %}
+          </div>
+        {% endfor %}
+      </section>
+
+      <!-- ============================================================
+           6 · EVIDENCE LEDGER
+           ============================================================ -->
+      {% if report.evidence_summary and report.evidence_summary|length > 0 %}
+      <section class="section-block">
+        <div class="head">
+          <div class="eyebrow">06 · Evidence summary tied to source documents</div>
+          <h2 class="section">Per-citation ledger</h2>
+          <div class="body-text small muted" style="margin-top:6px;">
+            One row per cited excerpt. Sorted by evidence strength: facts first, then inferences, then open questions.
+          </div>
         </div>
-
-        <div class="card">
-          <h2>Management claims vs counterpoints</h2>
-          {% if report.management_claims_vs_counterpoints and report.management_claims_vs_counterpoints|length > 0 %}
-            {% for row in report.management_claims_vs_counterpoints %}
-              <div style="margin-bottom: 14px;">
-                <div><strong>Claim</strong>: <span class="muted">{{ row.claim }}</span></div>
-                {% if row.source_excerpt %}
-                  <div class="quote" style="margin-top:6px">{{ row.source_excerpt }}</div>
+        <table class="ev-ledger">
+          <thead>
+            <tr>
+              <th style="width:7%;">Label</th>
+              <th style="width:30%;">Finding</th>
+              <th style="width:18%;">Source filing</th>
+              <th>Cited excerpt</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for r in report.evidence_summary %}
+            <tr>
+              <td>
+                <span class="pill {{ r.label }}">{{ r.label }}</span>
+                <div class="small muted" style="margin-top:4px;">{{ r.confidence }}</div>
+              </td>
+              <td>
+                <div style="font-weight:500; color:var(--navy);">{{ r.finding_title }}</div>
+                {% if r.category %}<div class="small muted mono" style="margin-top:4px;">{{ r.category|replace('_',' ') }}</div>{% endif %}
+                {% if r.why_it_matters %}<div class="body-text small" style="margin-top:6px;">{{ r.why_it_matters }}</div>{% endif %}
+              </td>
+              <td class="tt">
+                {% if r.url %}
+                  <a href="{{ r.url }}" target="_blank" rel="noreferrer">{{ r.filing_type or 'filing' }} · {{ r.filing_date or '' }}</a>
+                {% elif r.missing_citation %}
+                  <span class="muted small">— no source cited —</span>
+                {% else %}
+                  <span class="muted small">{{ r.filing_type or 'unknown' }}</span>
                 {% endif %}
-                <div style="margin-top: 6px;"><strong>Counterpoint</strong>: <span class="muted">{{ row.counterpoint }}</span></div>
-                <div class="muted" style="margin-top: 6px;">
-                  <span class="pill {{ row.confidence }}">confidence: {{ row.confidence }}</span>
-                </div>
-              </div>
+              </td>
+              <td>
+                {% if r.excerpt %}
+                  <div class="quote" style="margin:0;">{{ r.excerpt }}</div>
+                {% else %}
+                  <span class="muted small">No excerpt captured</span>
+                {% endif %}
+              </td>
+            </tr>
             {% endfor %}
-          {% else %}
-            <div class="muted">No extracted claim/counterpoint pairs.</div>
-          {% endif %}
+          </tbody>
+        </table>
+      </section>
+      {% endif %}
 
-          <div class="hr"></div>
-          <h2>Concerns by category</h2>
+      <!-- ============================================================
+           7 · MGMT CLAIMS
+           ============================================================ -->
+      {% if report.management_claims_vs_counterpoints and report.management_claims_vs_counterpoints|length > 0 %}
+      <section class="section-block">
+        <div class="head">
+          <div class="eyebrow">07 · Management claims vs counterpoints</div>
+          <h2 class="section">Tested against the filings</h2>
+        </div>
+        {% for row in report.management_claims_vs_counterpoints %}
+        <div class="claim-row">
+          <div>
+            <div class="role">Management</div>
+            <div class="body-text">{{ row.claim }}</div>
+            {% if row.source_excerpt %}
+              <div class="quote" style="margin-top:8px;">{{ row.source_excerpt }}</div>
+            {% endif %}
+          </div>
+          <div>
+            <div class="role" style="color:var(--bad);">Counterpoint / inconsistency</div>
+            <div class="body-text">{{ row.counterpoint }}</div>
+            <div style="margin-top:8px;">
+              <span class="pill {{ row.confidence }}">conf {{ row.confidence }}</span>
+            </div>
+          </div>
+        </div>
+        {% endfor %}
+      </section>
+      {% endif %}
+
+      <!-- ============================================================
+           8 · CONCERNS BY CATEGORY
+           ============================================================ -->
+      {% if report.concerns_by_category %}
+      <section class="section-block">
+        <div class="head">
+          <div class="eyebrow">08 · Accounting · governance · disclosure · operations</div>
+          <h2 class="section">Concerns by category</h2>
+        </div>
+        <div class="grid2">
           {% for cat, items in report.concerns_by_category.items() %}
-            <h3>{{ cat | replace('_', ' ') }}</h3>
+          <div class="card">
+            <div class="eyebrow">{{ cat|replace('_',' ') }}</div>
             {% if items and items|length > 0 %}
-              <ul>
-                {% for it in items %}
-                  <li class="muted">{{ it }}</li>
-                {% endfor %}
+              <ul class="body-text" style="margin: 8px 0 0 18px;">
+                {% for it in items %}<li>{{ it }}</li>{% endfor %}
               </ul>
             {% else %}
-              <div class="muted">No items.</div>
+              <div class="body-text small muted" style="margin-top:6px;">No specific concerns extracted.</div>
             {% endif %}
+          </div>
           {% endfor %}
+        </div>
+      </section>
+      {% endif %}
 
-          <div class="hr"></div>
-          <h2>Open questions for management</h2>
-          {% if report.open_questions and report.open_questions|length > 0 %}
-            <ul>
-              {% for q in report.open_questions %}
-                <li class="muted">{{ q }}</li>
+      <!-- ============================================================
+           9 · OPEN QUESTIONS
+           ============================================================ -->
+      <section class="section-block">
+        <div class="head">
+          <div class="eyebrow">09 · Open questions for management</div>
+          <h2 class="section">Where independent diligence should focus</h2>
+        </div>
+        {% if report.open_questions and report.open_questions|length > 0 %}
+        <ol class="body-text" style="margin: 0 0 0 22px;">
+          {% for q in report.open_questions %}
+            <li style="margin-bottom: 8px;">{{ q }}</li>
+          {% endfor %}
+        </ol>
+        {% else %}
+        <div class="body-text muted">None extracted.</div>
+        {% endif %}
+      </section>
+
+      <!-- ============================================================
+           10 · ANNUAL FINANCIALS
+           ============================================================ -->
+      {% if report.financial_table %}
+      <section class="section-block">
+        <div class="head">
+          <div class="eyebrow">10 · XBRL annual table</div>
+          <h2 class="section">Filed financials, last seven fiscal years</h2>
+        </div>
+        <table class="tabular">
+          <thead>
+            <tr>
+              <th>Year</th><th>Revenue</th><th>Net income</th><th>CFO</th>
+              <th>AR</th><th>Inventory</th><th>Goodwill</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% macro fnum(v) -%}
+              {% if v is none or v is undefined %}—{% else %}{{ "{:,.0f}".format(v) }}{% endif %}
+            {%- endmacro %}
+            {% for row in report.financial_table %}
+            <tr>
+              <td>{{ row.year }}</td>
+              <td>{{ fnum(row.get('revenue')) }}</td>
+              <td>{{ fnum(row.get('net_income')) }}</td>
+              <td>{{ fnum(row.get('operating_cash_flow')) }}</td>
+              <td>{{ fnum(row.get('accounts_receivable')) }}</td>
+              <td>{{ fnum(row.get('inventory')) }}</td>
+              <td>{{ fnum(row.get('goodwill')) }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+        <div class="body-text small muted" style="margin-top:8px;">
+          Values in reporting-currency units as filed. Blanks indicate the concept was not tagged in that period.
+        </div>
+      </section>
+      {% endif %}
+
+      <!-- ============================================================
+           11 · CONCLUSION
+           ============================================================ -->
+      <section class="section-block">
+        <div class="head">
+          <div class="eyebrow">11 · Conclusion · caution framing</div>
+          <h2 class="section">Why this name may warrant deeper review</h2>
+        </div>
+        <div class="card-tinted body-text" style="font-family: 'Source Serif 4', serif; font-size: 15px; line-height: 1.7;">
+          {{ report.conclusion or '—' }}
+        </div>
+      </section>
+
+      <!-- ============================================================
+           12 · LIMITATIONS + SOURCES
+           ============================================================ -->
+      <section class="section-block">
+        <div class="head">
+          <div class="eyebrow">12 · Methodology limitations · sources analyzed</div>
+          <h2 class="section">Disclosure</h2>
+        </div>
+        <div class="grid2">
+          <div class="card">
+            <div class="eyebrow">Limitations</div>
+            {% if report.limitations and report.limitations|length > 0 %}
+            <ul class="body-text" style="margin: 8px 0 0 18px;">
+              {% for l in report.limitations %}<li>{{ l }}</li>{% endfor %}
+            </ul>
+            {% else %}
+            <div class="body-text muted small" style="margin-top:6px;">No explicit limitations recorded.</div>
+            {% endif %}
+          </div>
+          <div class="card">
+            <div class="eyebrow">Sources analyzed</div>
+            <ul class="body-text small" style="margin: 8px 0 0 18px;">
+              {% for s in sources %}
+                <li>
+                  <span class="mono">{{ s.filing_type }} · {{ s.filing_date or 'undated' }}</span><br/>
+                  <a href="{{ s.primary_url }}" target="_blank" rel="noreferrer">{{ s.doc_id }}</a>
+                </li>
               {% endfor %}
             </ul>
-          {% else %}
-            <div class="muted">None extracted.</div>
-          {% endif %}
+          </div>
+        </div>
+      </section>
 
-          {% if report.financial_table %}
-            <div class="hr"></div>
-            <h2>Annual financials (XBRL)</h2>
-            <table>
-              <thead>
-                <tr>
-                  <th>Year</th>
-                  <th>Revenue</th>
-                  <th>Net income</th>
-                  <th>CFO</th>
-                  <th>AR</th>
-                  <th>Inventory</th>
-                  <th>Goodwill</th>
-                </tr>
-              </thead>
-              <tbody>
-                {% for row in report.financial_table %}
-                  {% macro fnum(v) -%}
-                    {% if v is none or v is undefined %}—{% else %}{{ "{:,.0f}".format(v) }}{% endif %}
-                  {%- endmacro %}
-                  <tr>
-                    <td>{{ row.year }}</td>
-                    <td>{{ fnum(row.get('revenue')) }}</td>
-                    <td>{{ fnum(row.get('net_income')) }}</td>
-                    <td>{{ fnum(row.get('operating_cash_flow')) }}</td>
-                    <td>{{ fnum(row.get('accounts_receivable')) }}</td>
-                    <td>{{ fnum(row.get('inventory')) }}</td>
-                    <td>{{ fnum(row.get('goodwill')) }}</td>
-                  </tr>
-                {% endfor %}
-              </tbody>
-            </table>
-            <div class="muted" style="font-size:11.5px; margin-top:6px">
-              Values in reporting-currency units as filed. Blanks indicate the concept was not tagged in that period.
-            </div>
-          {% endif %}
-
-          <div class="hr"></div>
-          <h2>Conclusion (caution framing)</h2>
-          <div class="muted">{{ report.conclusion }}</div>
-
-          <div class="hr"></div>
-          <h2>Limitations</h2>
-          <ul>
-            {% for l in report.limitations %}
-              <li class="muted">{{ l }}</li>
-            {% endfor %}
-          </ul>
+      <div class="doc-footer">
+        <div class="legal">
+          This document is a <strong>concern thesis</strong> generated by an automated forensic-research prototype, not investment advice and not an allegation of wrongdoing.
+          Every claim is graded for confidence (fact / inference / question / speculation) and tied to a verbatim citation. Independent verification against the cited filings is required before acting on any finding.
+        </div>
+        <div style="display:flex; justify-content:space-between; gap:24px; flex-wrap:wrap;">
+          <span>© Muddy Reporter Prototype · Case-study build</span>
+          <span class="mono" style="color:var(--ink-dim);">{{ report.ticker }} · generated {{ report.generated_at_iso }}</span>
         </div>
       </div>
-
-      <div class="card footer">
-        <div><strong>Sources analyzed</strong></div>
-        <ul>
-          {% for s in sources %}
-            <li class="muted">
-              {{ s.filing_type }} · {{ s.filing_date or "unknown date" }} ·
-              <a href="{{ s.primary_url }}" target="_blank" rel="noreferrer">{{ s.doc_id }}</a>
-            </li>
-          {% endfor %}
-        </ul>
-      </div>
-    </div>
+    </main>
   </body>
 </html>
